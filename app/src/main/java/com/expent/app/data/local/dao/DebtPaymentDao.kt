@@ -18,4 +18,7 @@ interface DebtPaymentDao {
 
     @Query("SELECT * FROM debt_payments WHERE debtId = :debtId ORDER BY timestamp DESC")
     fun observeForDebt(debtId: Long): Flow<List<DebtPaymentEntity>>
+
+    @Query("DELETE FROM debt_payments WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }

@@ -41,4 +41,18 @@ interface DebtDao {
         """
     )
     fun observeDebtsWithPaid(): Flow<List<DebtWithPaid>>
+
+    @Query(
+        """
+        SELECT d.*, COALESCE(SUM(p.amountCents), 0) AS totalPaidCents
+        FROM debts d
+        LEFT JOIN debt_payments p ON p.debtId = d.id
+        WHERE d.id = :id
+        GROUP BY d.id
+        """
+    )
+    fun observeDebtWithPaid(id: Long): Flow<DebtWithPaid?>
+
+    @Query("DELETE FROM debts WHERE id = :id")
+    suspend fun deleteById(id: Long)
 }

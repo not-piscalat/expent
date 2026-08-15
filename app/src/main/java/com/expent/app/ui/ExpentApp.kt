@@ -16,17 +16,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.expent.app.R
+import com.expent.app.ui.debts.AddDebtScreen
+import com.expent.app.ui.debts.DebtDetailScreen
 import com.expent.app.ui.debts.DebtsScreen
 import com.expent.app.ui.home.HomeScreen
 import com.expent.app.ui.transactions.AddTransactionScreen
 import com.expent.app.ui.transactions.TransactionsScreen
 
 private const val ADD_TRANSACTION_ROUTE = "add_transaction"
+private const val ADD_DEBT_ROUTE = "add_debt?debtId={debtId}"
+private const val DEBT_DETAIL_ROUTE = "debt_detail/{debtId}"
 
 enum class ExpentDestination(
     val route: String,
@@ -82,9 +88,32 @@ fun ExpentApp() {
                     onAddTransaction = { navController.navigate(ADD_TRANSACTION_ROUTE) }
                 )
             }
-            composable(ExpentDestination.DEBTS.route) { DebtsScreen() }
+            composable(ExpentDestination.DEBTS.route) {
+                DebtsScreen(
+                    onAddDebt = { navController.navigate("add_debt") },
+                    onOpenDebt = { debtId -> navController.navigate("debt_detail/$debtId") }
+                )
+            }
             composable(ADD_TRANSACTION_ROUTE) {
                 AddTransactionScreen(onDone = { navController.popBackStack() })
+            }
+            composable(
+                route = ADD_DEBT_ROUTE,
+                arguments = listOf(navArgument("debtId") { type = NavType.LongType; defaultValue = -1L })
+            ) {
+                AddDebtScreen(onDone = { navController.popBackStack() })
+            }
+            composable(
+                route = DEBT_DETAIL_ROUTE,
+                arguments = listOf(navArgument("debtId") { type = NavType.LongType })
+            ) { entry ->
+                val debtId = entry.arguments?.getLong("debtId") ?: 0L
+                DebtDetailScreen(
+                    debtId = debtId,
+                    onBack = { navController.popBackStack() },
+                    onEdit = { navController.navigate("add_debt?debtId=$debtId") },
+                    onDeleted = { navController.popBackStack() }
+                )
             }
         }
     }

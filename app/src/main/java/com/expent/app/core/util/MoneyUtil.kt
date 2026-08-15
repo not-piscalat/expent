@@ -19,6 +19,41 @@ object MoneyUtil {
         return sign + PESO_SYMBOL + String.format(locale, "%,.2f", abs(cents) / 100.0)
     }
 
+    /** Formats cents as an amount-input string (no grouping, no symbol), e.g. 123_456 -> "1234.56". */
+    fun toInput(cents: Long): String {
+        val absCents = abs(cents)
+        val whole = absCents / 100
+        val fraction = absCents % 100
+        return if (fraction == 0L) {
+            whole.toString()
+        } else {
+            "$whole.${fraction.toString().padStart(2, '0')}"
+        }
+    }
+
+    /**
+     * Keeps a typed amount field sane: digits only, one dot, at most two decimals.
+     */
+    fun sanitizeInput(input: String): String {
+        val result = StringBuilder()
+        var dotSeen = false
+        var decimals = 0
+        for (c in input) {
+            when {
+                c.isDigit() && decimals < 2 -> {
+                    result.append(c)
+                    if (dotSeen) decimals++
+                }
+                c == '.' && !dotSeen -> {
+                    result.append('.')
+                    dotSeen = true
+                }
+                else -> Unit // commas and anything else are dropped
+            }
+        }
+        return result.toString()
+    }
+
     /**
      * Parses a user-typed amount into minor units (cents).
      * Accepts an optional leading minus, thousands separators (commas) and at most

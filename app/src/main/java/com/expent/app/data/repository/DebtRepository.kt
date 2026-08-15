@@ -19,13 +19,19 @@ class DebtRepository @Inject constructor(
 
     suspend fun deleteDebt(debt: DebtEntity) = debtDao.delete(debt)
 
+    suspend fun deleteDebtById(id: Long) = debtDao.deleteById(id)
+
     fun observeAll(): Flow<List<DebtWithPaid>> = debtDao.observeDebtsWithPaid()
+
+    fun observeByIdWithPaid(id: Long): Flow<DebtWithPaid?> = debtDao.observeDebtWithPaid(id)
 
     fun observeById(id: Long): Flow<DebtEntity?> = debtDao.observeById(id)
 
     suspend fun addPayment(payment: DebtPaymentEntity): Long = paymentDao.insert(payment)
 
     suspend fun deletePayment(payment: DebtPaymentEntity) = paymentDao.delete(payment)
+
+    suspend fun deletePaymentById(id: Long) = paymentDao.deleteById(id)
 
     fun observePayments(debtId: Long): Flow<List<DebtPaymentEntity>> =
         paymentDao.observeForDebt(debtId)

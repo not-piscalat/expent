@@ -33,6 +33,20 @@
     <string name="debt_settled">Settled</string>
     <string name="debt_total">Total</string>
     <string name="debt_paid">Paid</string>
+    <string name="debt_title_label">Title</string>
+    <string name="person_name_label">Person (optional)</string>
+    <string name="set_due_date">Set due date (optional)</string>
+    <string name="clear">Clear</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
+    <string name="edit_debt">Edit debt</string>
+    <string name="delete_debt_title">Delete this debt?</string>
+    <string name="delete_debt_body">This removes the debt and its payment history. This action cannot be undone.</string>
+    <string name="debt_detail_title">Debt</string>
+    <string name="record_payment">Record payment</string>
+    <string name="payments">Payments</string>
+    <string name="no_payments_yet">No payments yet</string>
+    <string name="no_payments_body">Payments you record appear here and reduce the remaining balance.</string>
 
     <!-- Add transaction -->
     <string name="add_transaction_title">Add transaction</string>

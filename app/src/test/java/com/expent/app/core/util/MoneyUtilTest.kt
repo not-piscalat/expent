@@ -58,4 +58,12 @@ class MoneyUtilTest {
         assertEquals(10L, MoneyUtil.parse("0.1"))
         assertEquals(1L, MoneyUtil.parse("0.01"))
     }
+
+    @Test
+    fun `converts cents back to input strings`() {
+        assertEquals("1234.56", MoneyUtil.toInput(123_456))
+        assertEquals("5", MoneyUtil.toInput(500))
+        assertEquals("0.05", MoneyUtil.toInput(5))
+        assertEquals("0", MoneyUtil.toInput(0))
+    }
 }

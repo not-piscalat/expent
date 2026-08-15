@@ -59,7 +59,7 @@ class AddTransactionViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AddTransactionUiState())
 
     fun updateAmount(input: String) {
-        amountInput.value = sanitizeAmount(input)
+        amountInput.value = MoneyUtil.sanitizeInput(input)
     }
 
     fun setType(newType: TransactionType) {
@@ -90,26 +90,5 @@ class AddTransactionViewModel @Inject constructor(
                 timestamp = dateMillis.value
             )
         )
-    }
-
-    /** Keeps the amount field sane: digits only, one dot, at most two decimals. */
-    private fun sanitizeAmount(input: String): String {
-        val result = StringBuilder()
-        var dotSeen = false
-        var decimals = 0
-        for (c in input) {
-            when {
-                c.isDigit() && decimals < 2 -> {
-                    result.append(c)
-                    if (dotSeen) decimals++
-                }
-                c == '.' && !dotSeen -> {
-                    result.append('.')
-                    dotSeen = true
-                }
-                else -> Unit // commas and anything else are dropped
-            }
-        }
-        return result.toString()
     }
 }
