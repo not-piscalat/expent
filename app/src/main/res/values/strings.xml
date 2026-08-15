@@ -13,6 +13,7 @@
     <string name="home_income">Income</string>
     <string name="home_expenses">Expenses</string>
     <string name="home_recent_activity">Recent activity</string>
+    <string name="home_spending_by_category">Spending by category</string>
     <string name="home_empty_title">No transactions yet</string>
     <string name="home_empty_body">Add your first expense or income log to see your monthly overview here.</string>
 

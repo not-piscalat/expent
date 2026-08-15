@@ -9,23 +9,27 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.Card
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.expent.app.R
 import com.expent.app.core.util.MoneyUtil
+import com.expent.app.ui.components.CategoryAvatar
 import com.expent.app.ui.components.EmptyState
 import com.expent.app.ui.components.TransactionRow
 
@@ -48,6 +52,12 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
 
         item {
             BalanceCard(state)
+        }
+
+        if (state.spendingByCategory.isNotEmpty()) {
+            item {
+                SpendingBreakdownCard(state.spendingByCategory)
+            }
         }
 
         if (state.monthTransactions.isEmpty()) {
@@ -110,6 +120,44 @@ private fun BalanceCard(state: HomeUiState) {
                     label = stringResource(R.string.home_expenses),
                     value = MoneyUtil.format(state.expenseCents),
                     modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SpendingBreakdownCard(spending: List<CategorySpending>) {
+    val maxAmount = spending.maxOf { it.amountCents }.coerceAtLeast(1)
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.home_spending_by_category),
+                style = MaterialTheme.typography.titleMedium
+            )
+            spending.forEach { item ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    CategoryAvatar(iconName = item.iconName, colorArgb = item.colorArgb)
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = item.name ?: stringResource(R.string.uncategorized),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = MoneyUtil.format(item.amountCents),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+                LinearProgressIndicator(
+                    progress = { item.amountCents.toFloat() / maxAmount.toFloat() },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = Color(item.colorArgb)
                 )
             }
         }

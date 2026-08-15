@@ -14,10 +14,20 @@ import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 
+/** One row of the monthly breakdown: a category and its total spent this month. */
+data class CategorySpending(
+    val categoryId: Long?,
+    val name: String?,
+    val iconName: String?,
+    val colorArgb: Long,
+    val amountCents: Long
+)
+
 data class HomeUiState(
     val monthTransactions: List<TransactionWithCategory> = emptyList(),
     val incomeCents: Long = 0,
-    val expenseCents: Long = 0
+    val expenseCents: Long = 0,
+    val spendingByCategory: List<CategorySpending> = emptyList()
 ) {
     val balanceCents: Long get() = incomeCents - expenseCents
 }
@@ -50,7 +60,8 @@ class HomeViewModel @Inject constructor(
                     .sumOf { it.transaction.amountCents },
                 expenseCents = transactions
                     .filter { it.transaction.type == TransactionType.EXPENSE }
-                    .sumOf { it.transaction.amountCents }
+                    .sumOf { it.transaction.amountCents },
+                spendingByCategory = transactions.spendingByCategory()
             )
         }
         .stateIn(
@@ -58,4 +69,19 @@ class HomeViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = HomeUiState()
         )
+
+    /** Groups the month's expenses by category, sorted by total descending. */
+    private fun List<TransactionWithCategory>.spendingByCategory(): List<CategorySpending> =
+        filter { it.transaction.type == TransactionType.EXPENSE }
+            .groupBy { it.transaction.categoryId }
+            .map { (categoryId, items) ->
+                CategorySpending(
+                    categoryId = categoryId,
+                    name = items.firstNotNullOfOrNull { it.categoryName },
+                    iconName = items.firstNotNullOfOrNull { it.categoryIconName },
+                    colorArgb = items.firstNotNullOfOrNull { it.categoryColorArgb } ?: 0xFF9E9E9E,
+                    amountCents = items.sumOf { it.transaction.amountCents }
+                )
+            }
+            .sortedByDescending { it.amountCents }
 }

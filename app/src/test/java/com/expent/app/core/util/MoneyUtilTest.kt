@@ -8,23 +8,23 @@ import java.util.Locale
 class MoneyUtilTest {
 
     @Test
-    fun `formats cents with thousands separator and two decimals`() {
-        assertEquals("1,234.56", MoneyUtil.format(123_456, Locale.US))
+    fun `formats cents with peso symbol, thousands separator and two decimals`() {
+        assertEquals("₱1,234.56", MoneyUtil.format(123_456, Locale.US))
     }
 
     @Test
     fun `formats zero`() {
-        assertEquals("0.00", MoneyUtil.format(0, Locale.US))
+        assertEquals("₱0.00", MoneyUtil.format(0, Locale.US))
     }
 
     @Test
     fun `formats small amounts`() {
-        assertEquals("0.99", MoneyUtil.format(99, Locale.US))
+        assertEquals("₱0.99", MoneyUtil.format(99, Locale.US))
     }
 
     @Test
-    fun `formats negative amounts`() {
-        assertEquals("-12.50", MoneyUtil.format(-1_250, Locale.US))
+    fun `formats negative amounts with sign before symbol`() {
+        assertEquals("-₱12.50", MoneyUtil.format(-1_250, Locale.US))
     }
 
     @Test

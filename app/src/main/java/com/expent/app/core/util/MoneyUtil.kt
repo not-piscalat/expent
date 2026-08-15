@@ -1,17 +1,23 @@
 package com.expent.app.core.util
 
+import kotlin.math.abs
 import java.util.Locale
 
 /**
  * Amounts are stored as integer minor units (cents) everywhere in the app.
  * This is the single place they become human-readable strings.
  *
- * TODO: make the currency symbol configurable once settings exist (defaults to none).
+ * Currently hardcoded to Philippine Peso; TODO: make the currency configurable
+ * once settings exist.
  */
 object MoneyUtil {
 
-    fun format(cents: Long, locale: Locale = Locale.getDefault()): String =
-        String.format(locale, "%,.2f", cents / 100.0)
+    private const val PESO_SYMBOL = "₱"
+
+    fun format(cents: Long, locale: Locale = Locale.getDefault()): String {
+        val sign = if (cents < 0) "-" else ""
+        return sign + PESO_SYMBOL + String.format(locale, "%,.2f", abs(cents) / 100.0)
+    }
 
     /**
      * Parses a user-typed amount into minor units (cents).
