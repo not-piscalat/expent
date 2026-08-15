@@ -23,6 +23,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.expent.app.R
+import com.expent.app.ui.categories.AddCategoryScreen
+import com.expent.app.ui.categories.CategoriesScreen
 import com.expent.app.ui.debts.AddDebtScreen
 import com.expent.app.ui.debts.DebtDetailScreen
 import com.expent.app.ui.debts.DebtsScreen
@@ -33,6 +35,8 @@ import com.expent.app.ui.transactions.TransactionsScreen
 private const val ADD_TRANSACTION_ROUTE = "add_transaction?transactionId={transactionId}"
 private const val ADD_DEBT_ROUTE = "add_debt?debtId={debtId}"
 private const val DEBT_DETAIL_ROUTE = "debt_detail/{debtId}"
+private const val CATEGORIES_ROUTE = "categories"
+private const val ADD_CATEGORY_ROUTE = "add_category?categoryId={categoryId}"
 
 enum class ExpentDestination(
     val route: String,
@@ -101,7 +105,25 @@ fun ExpentApp() {
                     navArgument("transactionId") { type = NavType.LongType; defaultValue = -1L }
                 )
             ) {
-                AddTransactionScreen(onDone = { navController.popBackStack() })
+                AddTransactionScreen(
+                    onDone = { navController.popBackStack() },
+                    onManageCategories = { navController.navigate(CATEGORIES_ROUTE) }
+                )
+            }
+            composable(CATEGORIES_ROUTE) {
+                CategoriesScreen(
+                    onBack = { navController.popBackStack() },
+                    onAddCategory = { navController.navigate("add_category") },
+                    onEditCategory = { id -> navController.navigate("add_category?categoryId=$id") }
+                )
+            }
+            composable(
+                route = ADD_CATEGORY_ROUTE,
+                arguments = listOf(
+                    navArgument("categoryId") { type = NavType.LongType; defaultValue = -1L }
+                )
+            ) {
+                AddCategoryScreen(onDone = { navController.popBackStack() })
             }
             composable(
                 route = ADD_DEBT_ROUTE,
