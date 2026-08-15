@@ -44,6 +44,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.expent.app.R
 import com.expent.app.core.CurrencyOption
+import com.expent.app.core.ThemeOption
 import com.expent.app.core.util.MoneyUtil
 import com.expent.app.ui.theme.LocalCurrencySymbol
 import kotlinx.coroutines.launch
@@ -58,6 +59,7 @@ fun SettingsScreen(
 ) {
     val currency by settingsViewModel.currency.collectAsStateWithLifecycle()
     val startingBalance by settingsViewModel.startingBalance.collectAsStateWithLifecycle()
+    val theme by settingsViewModel.theme.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -159,6 +161,29 @@ fun SettingsScreen(
                         )
                     },
                     modifier = Modifier.clickable { settingsViewModel.setCurrency(option) }
+                )
+            }
+
+            Text(
+                text = stringResource(R.string.theme_label),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            ThemeOption.entries.forEach { option ->
+                val labelRes = when (option) {
+                    ThemeOption.SYSTEM -> R.string.theme_system
+                    ThemeOption.LIGHT -> R.string.theme_light
+                    ThemeOption.DARK -> R.string.theme_dark
+                }
+                ListItem(
+                    headlineContent = { Text(stringResource(labelRes)) },
+                    trailingContent = {
+                        RadioButton(
+                            selected = theme == option,
+                            onClick = { settingsViewModel.setTheme(option) }
+                        )
+                    },
+                    modifier = Modifier.clickable { settingsViewModel.setTheme(option) }
                 )
             }
 

@@ -1,8 +1,8 @@
 package com.expent.app.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Home
@@ -12,6 +12,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -26,6 +27,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.expent.app.R
+import com.expent.app.core.ThemeOption
 import com.expent.app.ui.categories.AddCategoryScreen
 import com.expent.app.ui.categories.CategoriesScreen
 import com.expent.app.ui.debts.AddDebtScreen
@@ -34,6 +36,7 @@ import com.expent.app.ui.debts.DebtsScreen
 import com.expent.app.ui.home.HomeScreen
 import com.expent.app.ui.settings.SettingsScreen
 import com.expent.app.ui.settings.SettingsViewModel
+import com.expent.app.ui.theme.ExpentTheme
 import com.expent.app.ui.theme.LocalCurrencySymbol
 import com.expent.app.ui.transactions.AddTransactionScreen
 import com.expent.app.ui.transactions.TransactionsScreen
@@ -61,10 +64,12 @@ fun ExpentApp(viewModel: SettingsViewModel = hiltViewModel()) {
     val currencySymbol by viewModel.currency
         .map { it.symbol }
         .collectAsStateWithLifecycle(initialValue = "₱")
+    val themeOption by viewModel.theme.collectAsStateWithLifecycle(initialValue = ThemeOption.SYSTEM)
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
+    ExpentTheme(darkTheme = themeOption.resolvesToDark(isSystemInDarkTheme())) {
     CompositionLocalProvider(LocalCurrencySymbol provides currencySymbol) {
     Scaffold(
         bottomBar = {
@@ -161,6 +166,7 @@ fun ExpentApp(viewModel: SettingsViewModel = hiltViewModel()) {
                 SettingsScreen(onBack = { navController.popBackStack() })
             }
         }
+    }
     }
     }
 }

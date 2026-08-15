@@ -46,6 +46,10 @@
     <string name="currency_php">Philippine Peso (₱)</string>
     <string name="currency_usd">US Dollar ($)</string>
     <string name="currency_none">No symbol</string>
+    <string name="theme_label">Theme</string>
+    <string name="theme_system">System default</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
     <string name="no_matching_body">Try a different search or month filter.</string>
     <string name="transactions_empty_body">Use the + button to log an expense, income, or money movement.</string>
     <string name="add_transaction">Add transaction</string>
