@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Expent</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_transactions">Transactions</string>
+    <string name="nav_debts">Debts</string>
+
+    <!-- Home -->
+    <string name="home_this_month">This month</string>
+    <string name="home_balance">Balance</string>
+    <string name="home_income">Income</string>
+    <string name="home_expenses">Expenses</string>
+    <string name="home_recent_activity">Recent activity</string>
+    <string name="home_empty_title">No transactions yet</string>
+    <string name="home_empty_body">Add your first expense or income log to see your monthly overview here.</string>
+
+    <!-- Transactions -->
+    <string name="transactions_empty_title">No transactions yet</string>
+    <string name="transactions_empty_body">Use the + button to log an expense, income, or money movement.</string>
+    <string name="add_transaction">Add transaction</string>
+
+    <!-- Debts -->
+    <string name="debts_empty_title">No debts tracked</string>
+    <string name="debts_empty_body">Track money you lent or borrowed. Add your first debt to get started.</string>
+    <string name="add_debt">Add debt</string>
+    <string name="debt_lent">Lent</string>
+    <string name="debt_borrowed">Borrowed</string>
+    <string name="debt_with">with</string>
+    <string name="debt_remaining">Remaining</string>
+    <string name="debt_settled">Settled</string>
+    <string name="debt_total">Total</string>
+    <string name="debt_paid">Paid</string>
+
+    <!-- Shared -->
+    <string name="uncategorized">Uncategorized</string>
+</resources>
