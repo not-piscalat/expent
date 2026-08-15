@@ -11,3 +11,7 @@
 *.apk
 *.aab
 app/build
+
+# Release signing — never commit these
+keystore.properties
+app/keystore/
