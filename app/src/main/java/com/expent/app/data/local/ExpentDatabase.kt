@@ -23,7 +23,7 @@ import com.expent.app.data.local.entity.TransactionEntity
         DebtPaymentEntity::class,
         RecurringTemplateEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class ExpentDatabase : RoomDatabase() {
@@ -65,5 +65,24 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         db.execSQL(
             "CREATE INDEX IF NOT EXISTS index_recurring_templates_categoryId ON recurring_templates (categoryId)"
         )
+    }
+}
+
+/**
+ * v3 -> v4: adds the sync columns that let debts and payments travel between
+ * accounts (see the mutual-debt milestone). Existing local debts keep their
+ * defaults: not shared, open, never synced, alive.
+ */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE debts ADD COLUMN remoteId TEXT")
+        db.execSQL("ALTER TABLE debts ADD COLUMN creatorId TEXT")
+        db.execSQL("ALTER TABLE debts ADD COLUMN otherParticipantId TEXT")
+        db.execSQL("ALTER TABLE debts ADD COLUMN status TEXT NOT NULL DEFAULT 'OPEN'")
+        db.execSQL("ALTER TABLE debts ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE debts ADD COLUMN deletedAt INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE debt_payments ADD COLUMN remoteId TEXT")
+        db.execSQL("ALTER TABLE debt_payments ADD COLUMN payerId TEXT")
+        db.execSQL("ALTER TABLE debt_payments ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
     }
 }

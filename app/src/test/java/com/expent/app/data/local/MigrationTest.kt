@@ -3,6 +3,12 @@ package com.expent.app.data.local
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.expent.app.data.local.entity.DebtEntity
+import com.expent.app.data.local.entity.DebtPaymentEntity
+import com.expent.app.data.local.entity.DebtStatus
+import com.expent.app.data.local.entity.DebtType
+import com.expent.app.data.local.entity.RecurringTemplateEntity
+import com.expent.app.data.local.entity.TransactionType
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -13,7 +19,7 @@ import org.robolectric.annotation.Config
 
 /**
  * Guards the hand-written migrations: a database created at v1 (with real data)
- * must open at v3 with Room's schema validation passing and the data intact.
+ * must open at v4 with Room's schema validation passing and the data intact.
  * Any drift between the migration SQL and Room's expected schema fails here
  * instead of crashing every existing user's app on upgrade.
  */
@@ -85,7 +91,7 @@ class MigrationTest {
     }
 
     @Test
-    fun `migrating from v1 to v3 keeps data and validates the schema`() {
+    fun `migrating from v1 to v4 keeps data and validates the schema`() {
         context.deleteDatabase(dbName)
 
         // Create a real v1 database and seed it like a first-launch install.
@@ -122,7 +128,7 @@ class MigrationTest {
         // Opening at the current version runs the migrations; Room validates the
         // resulting schema and throws if the SQL drifted from its expectations.
         val db = Room.databaseBuilder(context, ExpentDatabase::class.java, dbName)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .build()
 
         // A write proves the migrated database is fully writable.
@@ -140,10 +146,10 @@ class MigrationTest {
             )
             assertEquals(5_000L, db.categoryDao().getById(1)!!.budgetCents)
             db.recurringTemplateDao().insert(
-                com.expent.app.data.local.entity.RecurringTemplateEntity(
+                RecurringTemplateEntity(
                     title = "Rent",
                     amountCents = 12_000,
-                    type = com.expent.app.data.local.entity.TransactionType.EXPENSE,
+                    type = TransactionType.EXPENSE,
                     categoryId = 1,
                     note = null,
                     frequency = com.expent.app.core.RecurringFrequency.MONTHLY,
@@ -153,6 +159,55 @@ class MigrationTest {
                 )
             )
             assertEquals(1, db.recurringTemplateDao().getAll().size)
+
+            // v4's sync columns land on pre-existing data with their defaults:
+            // local-only, open, never synced, alive.
+            val migratedDebt = db.debtDao().getAll().single()
+            assertEquals(DebtStatus.OPEN, migratedDebt.status)
+            assertEquals(0L, migratedDebt.updatedAt)
+            assertEquals(0L, migratedDebt.deletedAt)
+            assertEquals(null, migratedDebt.remoteId)
+            assertEquals(null, migratedDebt.creatorId)
+            assertEquals(null, migratedDebt.otherParticipantId)
+            val migratedPayment = db.debtPaymentDao().getAll().single()
+            assertEquals(null, migratedPayment.remoteId)
+            assertEquals(null, migratedPayment.payerId)
+            assertEquals(0L, migratedPayment.updatedAt)
+
+            // And a shared debt + payment round-trip through the new columns.
+            val sharedId = db.debtDao().insert(
+                DebtEntity(
+                    title = "Shared",
+                    personName = "Kuya",
+                    type = DebtType.LENT,
+                    amountCents = 50_000,
+                    note = null,
+                    dueTimestamp = null,
+                    createdAt = 700,
+                    remoteId = "doc-abc",
+                    creatorId = "uid-1",
+                    otherParticipantId = "uid-2",
+                    status = DebtStatus.OPEN,
+                    updatedAt = 1_700_000_000_000,
+                    deletedAt = 0
+                )
+            )
+            val shared = db.debtDao().getAll().first { it.id == sharedId }
+            assertEquals("doc-abc", shared.remoteId)
+            assertEquals("uid-1", shared.creatorId)
+            assertEquals("uid-2", shared.otherParticipantId)
+            db.debtPaymentDao().insert(
+                DebtPaymentEntity(
+                    debtId = sharedId,
+                    amountCents = 10_000,
+                    timestamp = 800,
+                    note = null,
+                    remoteId = "pay-xyz",
+                    payerId = "uid-2",
+                    updatedAt = 1_700_000_000_100
+                )
+            )
+            assertEquals(1, db.debtPaymentDao().getAll().count { it.remoteId == "pay-xyz" })
         }
         db.close()
     }
