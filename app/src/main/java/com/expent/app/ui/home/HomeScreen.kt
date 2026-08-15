@@ -37,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.expent.app.R
 import com.expent.app.core.BudgetPacing
 import com.expent.app.core.CategorySpending
+import com.expent.app.core.MonthlyForecast
 import com.expent.app.core.util.MoneyUtil
 import com.expent.app.ui.components.CategoryAvatar
 import com.expent.app.ui.components.EmptyState
@@ -97,6 +98,12 @@ fun HomeScreen(
 
         item {
             BalanceCard(state)
+        }
+
+        if (state.forecast.hasForecast) {
+            item {
+                ForecastCard(state.forecast)
+            }
         }
 
         if (state.startingBalanceCents > 0 ||
@@ -182,6 +189,73 @@ private fun BalanceCard(state: HomeUiState) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ForecastCard(forecast: MonthlyForecast) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.home_forecast_title),
+                style = MaterialTheme.typography.titleMedium
+            )
+            ForecastRow(
+                label = stringResource(R.string.home_forecast_income),
+                amountCents = forecast.incomeCents,
+                valueColor = MaterialTheme.colorScheme.primary
+            )
+            ForecastRow(
+                label = stringResource(R.string.home_forecast_expenses),
+                amountCents = forecast.expenseCents
+            )
+            forecast.budgetedExpenseCents?.let { budgeted ->
+                ForecastRow(
+                    label = stringResource(R.string.home_forecast_budgeted),
+                    amountCents = budgeted,
+                    valueColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            HorizontalDivider()
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.home_forecast_net),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = MoneyUtil.format(forecast.netCents, symbol = LocalCurrencySymbol.current),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (forecast.netCents >= 0) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ForecastRow(label: String, amountCents: Long, valueColor: Color? = null) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = MoneyUtil.format(amountCents, symbol = LocalCurrencySymbol.current),
+            style = MaterialTheme.typography.bodyMedium,
+            color = valueColor ?: MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 

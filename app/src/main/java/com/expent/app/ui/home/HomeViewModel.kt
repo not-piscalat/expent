@@ -5,16 +5,20 @@ import androidx.lifecycle.viewModelScope
 import com.expent.app.core.BudgetPacing
 import com.expent.app.core.CategorySpending
 import com.expent.app.core.DebtPosition
+import com.expent.app.core.MonthlyForecast
 import com.expent.app.core.budgetPacing
 import com.expent.app.core.debtPosition
+import com.expent.app.core.forecast
 import com.expent.app.core.spendingByCategory
 import com.expent.app.core.withBudgets
 import com.expent.app.data.local.dao.DebtWithPaid
 import com.expent.app.data.local.dao.TransactionWithCategory
 import com.expent.app.data.local.entity.CategoryEntity
+import com.expent.app.data.local.entity.RecurringTemplateEntity
 import com.expent.app.data.local.entity.TransactionType
 import com.expent.app.data.repository.CategoryRepository
 import com.expent.app.data.repository.DebtRepository
+import com.expent.app.data.repository.RecurringRepository
 import com.expent.app.data.repository.SettingsRepository
 import com.expent.app.data.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,6 +44,8 @@ data class HomeUiState(
     val startingBalanceCents: Long = 0,
     /** Running-rate pacing per budgeted category; empty unless viewing the current month. */
     val pacingByCategory: Map<Long, BudgetPacing> = emptyMap(),
+    /** Projection for the next calendar month; independent of the browsed month. */
+    val forecast: MonthlyForecast = MonthlyForecast(),
     val monthLabel: String = "",
     val isCurrentMonth: Boolean = true
 ) {
@@ -52,7 +58,8 @@ class HomeViewModel @Inject constructor(
     transactionRepository: TransactionRepository,
     categoryRepository: CategoryRepository,
     debtRepository: DebtRepository,
-    settingsRepository: SettingsRepository
+    settingsRepository: SettingsRepository,
+    recurringRepository: RecurringRepository
 ) : ViewModel() {
 
     private val monthFormatter = DateTimeFormatter.ofPattern("MMM yyyy")
@@ -75,24 +82,51 @@ class HomeViewModel @Inject constructor(
 
     private val startingBalance: Flow<Long> = settingsRepository.startingBalance
 
+    private val templates: Flow<List<RecurringTemplateEntity>> = recurringRepository.observeAll()
+
+    /** The three complete months before the current one, one query. */
+    private val recentTransactions: Flow<List<TransactionWithCategory>> =
+        transactionRepository.observeBetweenWithCategory(
+            startInclusive = monthStartMillis(currentMonth.minusMonths(3)),
+            endExclusive = monthStartMillis(currentMonth)
+        )
+
+    private data class HomeContext(
+        val transactions: List<TransactionWithCategory>,
+        val month: LocalDate,
+        val categories: List<CategoryEntity>,
+        val debts: List<DebtWithPaid>
+    )
+
+    private data class ForecastContext(
+        val startingBalance: Long,
+        val templates: List<RecurringTemplateEntity>,
+        val recentTransactions: List<TransactionWithCategory>
+    )
+
     val uiState: StateFlow<HomeUiState> = combine(
-        monthTransactions, selectedMonth, categories, debts, startingBalance
-    ) { transactions, month, categories, debts, startingBalance ->
-        val budgets = categories.associate { it.id to it.budgetCents }
-        val spending = transactions.spendingByCategory().withBudgets(budgets)
-        val isCurrentMonth = month == currentMonth
+        combine(monthTransactions, selectedMonth, categories, debts) { t, m, c, d ->
+            HomeContext(t, m, c, d)
+        },
+        combine(startingBalance, templates, recentTransactions) { sb, tpl, recent ->
+            ForecastContext(sb, tpl, recent)
+        }
+    ) { ctx, forecastCtx ->
+        val budgets = ctx.categories.associate { it.id to it.budgetCents }
+        val spending = ctx.transactions.spendingByCategory().withBudgets(budgets)
+        val isCurrentMonth = ctx.month == currentMonth
         val today = LocalDate.now()
         HomeUiState(
-            monthTransactions = transactions,
-            incomeCents = transactions
+            monthTransactions = ctx.transactions,
+            incomeCents = ctx.transactions
                 .filter { it.transaction.type == TransactionType.INCOME }
                 .sumOf { it.transaction.amountCents },
-            expenseCents = transactions
+            expenseCents = ctx.transactions
                 .filter { it.transaction.type == TransactionType.EXPENSE }
                 .sumOf { it.transaction.amountCents },
             spendingByCategory = spending,
-            debtPosition = debts.debtPosition(),
-            startingBalanceCents = startingBalance,
+            debtPosition = ctx.debts.debtPosition(),
+            startingBalanceCents = forecastCtx.startingBalance,
             pacingByCategory = if (isCurrentMonth) {
                 spending.mapNotNull { item ->
                     val budget = item.budgetCents?.takeIf { it > 0 } ?: return@mapNotNull null
@@ -101,7 +135,13 @@ class HomeViewModel @Inject constructor(
             } else {
                 emptyMap()
             },
-            monthLabel = month.format(monthFormatter),
+            forecast = forecast(
+                templates = forecastCtx.templates,
+                pastTransactions = forecastCtx.recentTransactions,
+                budgets = budgets,
+                today = today
+            ),
+            monthLabel = ctx.month.format(monthFormatter),
             isCurrentMonth = isCurrentMonth
         )
     }.stateIn(
