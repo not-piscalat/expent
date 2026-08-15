@@ -4,8 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.expent.app.core.CategorySpending
 import com.expent.app.core.spendingByCategory
+import com.expent.app.core.withBudgets
 import com.expent.app.data.local.dao.TransactionWithCategory
+import com.expent.app.data.local.entity.CategoryEntity
 import com.expent.app.data.local.entity.TransactionType
+import com.expent.app.data.repository.CategoryRepository
 import com.expent.app.data.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -34,7 +37,8 @@ data class HomeUiState(
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    transactionRepository: TransactionRepository
+    transactionRepository: TransactionRepository,
+    categoryRepository: CategoryRepository
 ) : ViewModel() {
 
     private val monthFormatter = DateTimeFormatter.ofPattern("MMM yyyy")
@@ -51,9 +55,12 @@ class HomeViewModel @Inject constructor(
             )
         }
 
+    private val categories: Flow<List<CategoryEntity>> = categoryRepository.observeAll()
+
     val uiState: StateFlow<HomeUiState> = combine(
-        monthTransactions, selectedMonth
-    ) { transactions, month ->
+        monthTransactions, selectedMonth, categories
+    ) { transactions, month, categories ->
+        val budgets = categories.associate { it.id to it.budgetCents }
         HomeUiState(
             monthTransactions = transactions,
             incomeCents = transactions
@@ -62,7 +69,7 @@ class HomeViewModel @Inject constructor(
             expenseCents = transactions
                 .filter { it.transaction.type == TransactionType.EXPENSE }
                 .sumOf { it.transaction.amountCents },
-            spendingByCategory = transactions.spendingByCategory(),
+            spendingByCategory = transactions.spendingByCategory().withBudgets(budgets),
             monthLabel = month.format(monthFormatter),
             isCurrentMonth = month == currentMonth
         )

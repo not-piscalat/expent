@@ -21,5 +21,7 @@ data class CategoryEntity(
     val iconName: String?,
     val colorArgb: Long,
     val isDefault: Boolean = false,
-    val sortOrder: Int = 0
+    val sortOrder: Int = 0,
+    /** Optional monthly spending limit in cents; null means no budget. */
+    val budgetCents: Long? = null
 )

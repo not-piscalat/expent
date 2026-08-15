@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.expent.app.core.FormValidation
+import com.expent.app.core.util.MoneyUtil
 import com.expent.app.data.local.entity.CategoryEntity
 import com.expent.app.data.local.entity.TransactionType
 import com.expent.app.data.repository.CategoryRepository
@@ -19,6 +20,7 @@ data class AddCategoryUiState(
     val type: TransactionType = TransactionType.EXPENSE,
     val iconName: String? = null,
     val colorArgb: Long = DEFAULT_COLOR_ARGB,
+    val budgetInput: String = "",
     val isEditing: Boolean = false,
     val canSave: Boolean = false
 ) {
@@ -48,6 +50,7 @@ class AddCategoryViewModel @Inject constructor(
                     type = category.type,
                     iconName = category.iconName,
                     colorArgb = category.colorArgb,
+                    budgetInput = category.budgetCents?.let { MoneyUtil.toInput(it) }.orEmpty(),
                     isEditing = true,
                     canSave = true
                 )
@@ -63,9 +66,12 @@ class AddCategoryViewModel @Inject constructor(
 
     fun selectColor(colorArgb: Long) = update { it.copy(colorArgb = colorArgb) }
 
+    fun updateBudget(input: String) = update { it.copy(budgetInput = MoneyUtil.sanitizeInput(input)) }
+
     suspend fun save() {
         val state = _uiState.value
         if (state.name.isBlank()) return
+        val budgetCents = MoneyUtil.parse(state.budgetInput)?.takeIf { it > 0 }
         if (categoryId > 0) {
             val current = categoryRepository.getById(categoryId) ?: return
             categoryRepository.update(
@@ -73,7 +79,8 @@ class AddCategoryViewModel @Inject constructor(
                     name = state.name.trim(),
                     type = state.type,
                     iconName = state.iconName,
-                    colorArgb = state.colorArgb
+                    colorArgb = state.colorArgb,
+                    budgetCents = budgetCents
                 )
             )
         } else {
@@ -84,7 +91,8 @@ class AddCategoryViewModel @Inject constructor(
                     iconName = state.iconName,
                     colorArgb = state.colorArgb,
                     isDefault = false,
-                    sortOrder = 1000
+                    sortOrder = 1000,
+                    budgetCents = budgetCents
                 )
             )
         }

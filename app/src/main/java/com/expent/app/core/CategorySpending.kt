@@ -9,7 +9,9 @@ data class CategorySpending(
     val name: String?,
     val iconName: String?,
     val colorArgb: Long,
-    val amountCents: Long
+    val amountCents: Long,
+    /** Optional monthly spending limit; null means no budget. */
+    val budgetCents: Long? = null
 )
 
 /** Groups expenses by category, summing amounts and sorting by total descending. */
@@ -26,3 +28,7 @@ fun List<TransactionWithCategory>.spendingByCategory(): List<CategorySpending> =
             )
         }
         .sortedByDescending { it.amountCents }
+
+/** Attaches each category's monthly budget to its breakdown row. */
+fun List<CategorySpending>.withBudgets(budgetByCategoryId: Map<Long, Long?>): List<CategorySpending> =
+    map { it.copy(budgetCents = it.categoryId?.let { id -> budgetByCategoryId[id] }) }

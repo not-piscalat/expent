@@ -3,6 +3,7 @@ package com.expent.app.di
 import android.content.Context
 import androidx.room.Room
 import com.expent.app.data.local.ExpentDatabase
+import com.expent.app.data.local.MIGRATION_1_2
 import com.expent.app.data.local.dao.CategoryDao
 import com.expent.app.data.local.dao.DebtDao
 import com.expent.app.data.local.dao.DebtPaymentDao
@@ -22,6 +23,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): ExpentDatabase =
         Room.databaseBuilder(context, ExpentDatabase::class.java, "expent.db")
+            .addMigrations(MIGRATION_1_2)
             .build()
 
     @Provides

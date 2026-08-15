@@ -199,11 +199,42 @@ private fun SpendingBreakdownCard(spending: List<CategorySpending>) {
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
-                LinearProgressIndicator(
-                    progress = { item.amountCents.toFloat() / maxAmount.toFloat() },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = Color(item.colorArgb)
-                )
+                val budget = item.budgetCents
+                if (budget != null && budget > 0) {
+                    val over = item.amountCents > budget
+                    LinearProgressIndicator(
+                        progress = { (item.amountCents.toFloat() / budget.toFloat()).coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = if (over) MaterialTheme.colorScheme.error else Color(item.colorArgb)
+                    )
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = MoneyUtil.format(item.amountCents, symbol = LocalCurrencySymbol.current) +
+                                " " + stringResource(R.string.budget_of) + " " +
+                                MoneyUtil.format(budget, symbol = LocalCurrencySymbol.current),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (over) {
+                            Text(
+                                text = stringResource(R.string.over_by) + " " +
+                                    MoneyUtil.format(
+                                        item.amountCents - budget,
+                                        symbol = LocalCurrencySymbol.current
+                                    ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                } else {
+                    LinearProgressIndicator(
+                        progress = { item.amountCents.toFloat() / maxAmount.toFloat() },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = Color(item.colorArgb)
+                    )
+                }
             }
         }
     }

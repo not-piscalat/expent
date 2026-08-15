@@ -66,4 +66,18 @@ class CategorySpendingTest {
         val result = listOf(txc(1L, "Food", 10, colorArgb = null)).spendingByCategory()
         assertEquals(0xFF9E9E9EL, result.first().colorArgb)
     }
+
+    @Test
+    fun `attaches budgets by category id`() {
+        val rows = listOf(txc(1L, "Food", 100), txc(null, null, 50)).spendingByCategory()
+        val withBudgets = rows.withBudgets(mapOf(1L to 500L))
+        assertEquals(500L, withBudgets.first { it.categoryId == 1L }.budgetCents)
+        assertNull(withBudgets.first { it.categoryId == null }.budgetCents)
+    }
+
+    @Test
+    fun `missing budgets stay null`() {
+        val rows = listOf(txc(1L, "Food", 100)).spendingByCategory()
+        assertNull(rows.withBudgets(emptyMap()).first().budgetCents)
+    }
 }

@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -39,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -103,6 +105,15 @@ fun AddCategoryScreen(
                 onValueChange = viewModel::updateName,
                 label = { Text(stringResource(R.string.category_name_label)) },
                 singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = state.budgetInput,
+                onValueChange = viewModel::updateBudget,
+                label = { Text(stringResource(R.string.monthly_budget_label)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth()
             )
 
