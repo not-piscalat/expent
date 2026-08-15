@@ -4,9 +4,11 @@ import android.content.Context
 import androidx.room.Room
 import com.expent.app.data.local.ExpentDatabase
 import com.expent.app.data.local.MIGRATION_1_2
+import com.expent.app.data.local.MIGRATION_2_3
 import com.expent.app.data.local.dao.CategoryDao
 import com.expent.app.data.local.dao.DebtDao
 import com.expent.app.data.local.dao.DebtPaymentDao
+import com.expent.app.data.local.dao.RecurringTemplateDao
 import com.expent.app.data.local.dao.TransactionDao
 import dagger.Module
 import dagger.Provides
@@ -23,7 +25,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): ExpentDatabase =
         Room.databaseBuilder(context, ExpentDatabase::class.java, "expent.db")
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
 
     @Provides
@@ -37,4 +39,7 @@ object DatabaseModule {
 
     @Provides
     fun provideDebtPaymentDao(db: ExpentDatabase): DebtPaymentDao = db.debtPaymentDao()
+
+    @Provides
+    fun provideRecurringTemplateDao(db: ExpentDatabase): RecurringTemplateDao = db.recurringTemplateDao()
 }

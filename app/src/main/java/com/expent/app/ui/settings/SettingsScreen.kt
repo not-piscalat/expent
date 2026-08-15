@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.AlertDialog
@@ -54,6 +55,7 @@ import java.io.File
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    onOpenRecurring: () -> Unit = {},
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     backupViewModel: BackupViewModel = hiltViewModel()
 ) {
@@ -186,6 +188,20 @@ fun SettingsScreen(
                     modifier = Modifier.clickable { settingsViewModel.setTheme(option) }
                 )
             }
+
+            Text(
+                text = stringResource(R.string.recurring_label),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.recurring)) },
+                supportingContent = { Text(stringResource(R.string.recurring_empty_body)) },
+                leadingContent = {
+                    Icon(imageVector = Icons.Filled.DateRange, contentDescription = null)
+                },
+                modifier = Modifier.clickable { onOpenRecurring() }
+            )
 
             Text(
                 text = stringResource(R.string.starting_balance),

@@ -42,4 +42,13 @@ class FormValidationTest {
         assertFalse(FormValidation.canSaveCategory("   "))
         assertTrue(FormValidation.canSaveCategory("Coffee"))
     }
+
+    @Test
+    fun `recurring save requires a title and a valid amount`() {
+        assertFalse(FormValidation.canSaveRecurring("", "5"))
+        assertFalse(FormValidation.canSaveRecurring("   ", "5"))
+        assertFalse(FormValidation.canSaveRecurring("Rent", ""))
+        assertFalse(FormValidation.canSaveRecurring("Rent", "0"))
+        assertTrue(FormValidation.canSaveRecurring("Rent", "15,000"))
+    }
 }

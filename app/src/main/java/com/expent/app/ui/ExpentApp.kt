@@ -34,6 +34,8 @@ import com.expent.app.ui.debts.AddDebtScreen
 import com.expent.app.ui.debts.DebtDetailScreen
 import com.expent.app.ui.debts.DebtsScreen
 import com.expent.app.ui.home.HomeScreen
+import com.expent.app.ui.recurring.AddRecurringScreen
+import com.expent.app.ui.recurring.RecurringScreen
 import com.expent.app.ui.settings.SettingsScreen
 import com.expent.app.ui.settings.SettingsViewModel
 import com.expent.app.ui.theme.ExpentTheme
@@ -48,6 +50,8 @@ private const val DEBT_DETAIL_ROUTE = "debt_detail/{debtId}"
 private const val CATEGORIES_ROUTE = "categories"
 private const val ADD_CATEGORY_ROUTE = "add_category?categoryId={categoryId}"
 private const val SETTINGS_ROUTE = "settings"
+private const val RECURRING_ROUTE = "recurring"
+private const val ADD_RECURRING_ROUTE = "add_recurring?templateId={templateId}"
 
 enum class ExpentDestination(
     val route: String,
@@ -144,6 +148,24 @@ fun ExpentApp(viewModel: SettingsViewModel = hiltViewModel()) {
             ) {
                 AddCategoryScreen(onDone = { navController.popBackStack() })
             }
+            composable(RECURRING_ROUTE) {
+                RecurringScreen(
+                    onBack = { navController.popBackStack() },
+                    onAddRecurring = { navController.navigate("add_recurring") },
+                    onEditRecurring = { id -> navController.navigate("add_recurring?templateId=$id") }
+                )
+            }
+            composable(
+                route = ADD_RECURRING_ROUTE,
+                arguments = listOf(
+                    navArgument("templateId") { type = NavType.LongType; defaultValue = -1L }
+                )
+            ) {
+                AddRecurringScreen(
+                    onDone = { navController.popBackStack() },
+                    onManageCategories = { navController.navigate(CATEGORIES_ROUTE) }
+                )
+            }
             composable(
                 route = ADD_DEBT_ROUTE,
                 arguments = listOf(navArgument("debtId") { type = NavType.LongType; defaultValue = -1L })
@@ -163,7 +185,10 @@ fun ExpentApp(viewModel: SettingsViewModel = hiltViewModel()) {
                 )
             }
             composable(SETTINGS_ROUTE) {
-                SettingsScreen(onBack = { navController.popBackStack() })
+                SettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenRecurring = { navController.navigate(RECURRING_ROUTE) }
+                )
             }
         }
     }

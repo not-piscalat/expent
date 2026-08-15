@@ -1,9 +1,11 @@
 package com.expent.app.data.backup
 
+import com.expent.app.core.RecurringFrequency
 import com.expent.app.data.local.entity.CategoryEntity
 import com.expent.app.data.local.entity.DebtEntity
 import com.expent.app.data.local.entity.DebtPaymentEntity
 import com.expent.app.data.local.entity.DebtType
+import com.expent.app.data.local.entity.RecurringTemplateEntity
 import com.expent.app.data.local.entity.TransactionEntity
 import com.expent.app.data.local.entity.TransactionType
 import org.junit.Assert.assertEquals
@@ -54,6 +56,21 @@ class BackupCodecTest {
                 timestamp = 2_000,
                 note = "First payment"
             )
+        ),
+        recurringTemplates = listOf(
+            RecurringTemplateEntity(
+                id = 5,
+                title = "Rent",
+                amountCents = 15_000,
+                type = TransactionType.EXPENSE,
+                categoryId = 1,
+                note = null,
+                frequency = RecurringFrequency.MONTHLY,
+                dayOfMonth = 1,
+                dayOfWeek = 1,
+                nextDueEpochDay = 20_000,
+                isActive = true
+            )
         )
     )
 
@@ -70,6 +87,7 @@ class BackupCodecTest {
         assertEquals(1, decoded.version)
         assertEquals(emptyList<CategoryEntity>(), decoded.categories)
         assertEquals(emptyList<TransactionEntity>(), decoded.transactions)
+        assertEquals(emptyList<RecurringTemplateEntity>(), decoded.recurringTemplates)
     }
 
     @Test

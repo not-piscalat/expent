@@ -16,4 +16,7 @@ object FormValidation {
 
     fun canSaveCategory(name: String): Boolean =
         name.isNotBlank()
+
+    fun canSaveRecurring(title: String, amountInput: String): Boolean =
+        title.isNotBlank() && isValidAmount(amountInput)
 }

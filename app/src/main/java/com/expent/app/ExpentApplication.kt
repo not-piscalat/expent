@@ -1,6 +1,7 @@
 package com.expent.app
 
 import android.app.Application
+import com.expent.app.data.recurring.RecurringEngine
 import com.expent.app.data.repository.CategoryRepository
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -15,12 +16,16 @@ class ExpentApplication : Application() {
     @Inject
     lateinit var categoryRepository: CategoryRepository
 
+    @Inject
+    lateinit var recurringEngine: RecurringEngine
+
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
         applicationScope.launch {
             categoryRepository.seedDefaultsIfEmpty()
+            recurringEngine.applyDue()
         }
     }
 }

@@ -5,6 +5,7 @@ import com.expent.app.data.local.ExpentDatabase
 import com.expent.app.data.local.dao.CategoryDao
 import com.expent.app.data.local.dao.DebtDao
 import com.expent.app.data.local.dao.DebtPaymentDao
+import com.expent.app.data.local.dao.RecurringTemplateDao
 import com.expent.app.data.local.dao.TransactionDao
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -15,7 +16,8 @@ class BackupService @Inject constructor(
     private val categoryDao: CategoryDao,
     private val transactionDao: TransactionDao,
     private val debtDao: DebtDao,
-    private val paymentDao: DebtPaymentDao
+    private val paymentDao: DebtPaymentDao,
+    private val recurringTemplateDao: RecurringTemplateDao
 ) {
 
     suspend fun export(): String {
@@ -24,7 +26,8 @@ class BackupService @Inject constructor(
             categories = categoryDao.getAll(),
             transactions = transactionDao.getAll(),
             debts = debtDao.getAll(),
-            payments = paymentDao.getAll()
+            payments = paymentDao.getAll(),
+            recurringTemplates = recurringTemplateDao.getAll()
         )
         return BackupCodec.encode(data)
     }
@@ -33,6 +36,7 @@ class BackupService @Inject constructor(
     suspend fun restore(json: String) {
         val data = BackupCodec.decode(json)
         database.withTransaction {
+            recurringTemplateDao.clearAll()
             paymentDao.clearAll()
             debtDao.clearAll()
             transactionDao.clearAll()
@@ -43,6 +47,7 @@ class BackupService @Inject constructor(
             transactionDao.insertAll(data.transactions)
             debtDao.insertAll(data.debts)
             paymentDao.insertAll(data.payments)
+            recurringTemplateDao.insertAll(data.recurringTemplates)
         }
     }
 }

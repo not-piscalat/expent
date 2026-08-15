@@ -3,6 +3,7 @@ package com.expent.app.data.backup
 import com.expent.app.data.local.entity.CategoryEntity
 import com.expent.app.data.local.entity.DebtEntity
 import com.expent.app.data.local.entity.DebtPaymentEntity
+import com.expent.app.data.local.entity.RecurringTemplateEntity
 import com.expent.app.data.local.entity.TransactionEntity
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -15,7 +16,8 @@ data class BackupData(
     val categories: List<CategoryEntity> = emptyList(),
     val transactions: List<TransactionEntity> = emptyList(),
     val debts: List<DebtEntity> = emptyList(),
-    val payments: List<DebtPaymentEntity> = emptyList()
+    val payments: List<DebtPaymentEntity> = emptyList(),
+    val recurringTemplates: List<RecurringTemplateEntity> = emptyList()
 )
 
 object BackupCodec {
