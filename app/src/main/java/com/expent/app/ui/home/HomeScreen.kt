@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.expent.app.R
+import com.expent.app.core.BudgetPacing
 import com.expent.app.core.CategorySpending
 import com.expent.app.core.util.MoneyUtil
 import com.expent.app.ui.components.CategoryAvatar
@@ -109,7 +110,10 @@ fun HomeScreen(
 
         if (state.spendingByCategory.isNotEmpty()) {
             item {
-                SpendingBreakdownCard(state.spendingByCategory)
+                SpendingBreakdownCard(
+                    spending = state.spendingByCategory,
+                    pacingByCategory = state.pacingByCategory
+                )
             }
         }
 
@@ -250,7 +254,10 @@ private fun NetPositionRow(label: String, amountCents: Long, valueColor: Color? 
 }
 
 @Composable
-private fun SpendingBreakdownCard(spending: List<CategorySpending>) {
+private fun SpendingBreakdownCard(
+    spending: List<CategorySpending>,
+    pacingByCategory: Map<Long, BudgetPacing>
+) {
     val maxAmount = spending.maxOf { it.amountCents }.coerceAtLeast(1)
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
@@ -279,11 +286,18 @@ private fun SpendingBreakdownCard(spending: List<CategorySpending>) {
                 }
                 val budget = item.budgetCents
                 if (budget != null && budget > 0) {
+                    val pacing = item.categoryId?.let { pacingByCategory[it] }
                     val over = item.amountCents > budget
+                    val pacingOver = !over && pacing?.isPacingOver == true
+                    val barColor = when {
+                        over -> MaterialTheme.colorScheme.error
+                        pacingOver -> MaterialTheme.colorScheme.tertiary
+                        else -> Color(item.colorArgb)
+                    }
                     LinearProgressIndicator(
                         progress = { (item.amountCents.toFloat() / budget.toFloat()).coerceIn(0f, 1f) },
                         modifier = Modifier.fillMaxWidth(),
-                        color = if (over) MaterialTheme.colorScheme.error else Color(item.colorArgb)
+                        color = barColor
                     )
                     Row(modifier = Modifier.fillMaxWidth()) {
                         Text(
@@ -294,16 +308,38 @@ private fun SpendingBreakdownCard(spending: List<CategorySpending>) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f)
                         )
-                        if (over) {
-                            Text(
-                                text = stringResource(R.string.over_by) + " " +
-                                    MoneyUtil.format(
-                                        item.amountCents - budget,
-                                        symbol = LocalCurrencySymbol.current
+                        when {
+                            over -> {
+                                Text(
+                                    text = stringResource(R.string.over_by) + " " +
+                                        MoneyUtil.format(
+                                            item.amountCents - budget,
+                                            symbol = LocalCurrencySymbol.current
+                                        ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                            pacingOver -> {
+                                Text(
+                                    text = stringResource(
+                                        R.string.pacing_over_by,
+                                        MoneyUtil.format(
+                                            pacing?.projectedOverCents ?: 0,
+                                            symbol = LocalCurrencySymbol.current
+                                        )
                                     ),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error
-                            )
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                            }
+                            else -> {
+                                Text(
+                                    text = stringResource(R.string.pacing_on_track),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 } else {

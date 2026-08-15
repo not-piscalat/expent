@@ -2,8 +2,10 @@ package com.expent.app.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.expent.app.core.BudgetPacing
 import com.expent.app.core.CategorySpending
 import com.expent.app.core.DebtPosition
+import com.expent.app.core.budgetPacing
 import com.expent.app.core.debtPosition
 import com.expent.app.core.spendingByCategory
 import com.expent.app.core.withBudgets
@@ -36,6 +38,8 @@ data class HomeUiState(
     val spendingByCategory: List<CategorySpending> = emptyList(),
     val debtPosition: DebtPosition = DebtPosition(),
     val startingBalanceCents: Long = 0,
+    /** Running-rate pacing per budgeted category; empty unless viewing the current month. */
+    val pacingByCategory: Map<Long, BudgetPacing> = emptyMap(),
     val monthLabel: String = "",
     val isCurrentMonth: Boolean = true
 ) {
@@ -75,6 +79,9 @@ class HomeViewModel @Inject constructor(
         monthTransactions, selectedMonth, categories, debts, startingBalance
     ) { transactions, month, categories, debts, startingBalance ->
         val budgets = categories.associate { it.id to it.budgetCents }
+        val spending = transactions.spendingByCategory().withBudgets(budgets)
+        val isCurrentMonth = month == currentMonth
+        val today = LocalDate.now()
         HomeUiState(
             monthTransactions = transactions,
             incomeCents = transactions
@@ -83,11 +90,19 @@ class HomeViewModel @Inject constructor(
             expenseCents = transactions
                 .filter { it.transaction.type == TransactionType.EXPENSE }
                 .sumOf { it.transaction.amountCents },
-            spendingByCategory = transactions.spendingByCategory().withBudgets(budgets),
+            spendingByCategory = spending,
             debtPosition = debts.debtPosition(),
             startingBalanceCents = startingBalance,
+            pacingByCategory = if (isCurrentMonth) {
+                spending.mapNotNull { item ->
+                    val budget = item.budgetCents?.takeIf { it > 0 } ?: return@mapNotNull null
+                    item.categoryId?.let { it to budgetPacing(item.amountCents, budget, today) }
+                }.toMap()
+            } else {
+                emptyMap()
+            },
             monthLabel = month.format(monthFormatter),
-            isCurrentMonth = month == currentMonth
+            isCurrentMonth = isCurrentMonth
         )
     }.stateIn(
         scope = viewModelScope,
