@@ -206,6 +206,23 @@ fun AddRecurringScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            if (state.suggestions.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.suggested),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(state.suggestions) { suggestion ->
+                        FilterChip(
+                            selected = effectiveCategoryId == suggestion.category.id,
+                            onClick = { viewModel.selectCategory(suggestion.category.id) },
+                            label = { Text(suggestion.category.name) }
+                        )
+                    }
+                }
+            }
+
             Button(
                 onClick = {
                     scope.launch {

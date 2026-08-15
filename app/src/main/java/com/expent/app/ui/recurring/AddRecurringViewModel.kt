@@ -3,15 +3,19 @@ package com.expent.app.ui.recurring
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.expent.app.core.CategorySuggestion
+import com.expent.app.core.CategorySuggester
 import com.expent.app.core.FormValidation
 import com.expent.app.core.RecurringFrequency
 import com.expent.app.core.RecurringSchedule
 import com.expent.app.core.util.MoneyUtil
+import com.expent.app.data.local.dao.TransactionWithCategory
 import com.expent.app.data.local.entity.CategoryEntity
 import com.expent.app.data.local.entity.RecurringTemplateEntity
 import com.expent.app.data.local.entity.TransactionType
 import com.expent.app.data.repository.CategoryRepository
 import com.expent.app.data.repository.RecurringRepository
+import com.expent.app.data.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,6 +52,7 @@ data class AddRecurringUiState(
     val frequency: RecurringFrequency = RecurringFrequency.MONTHLY,
     val dayOfMonth: Int = LocalDate.now().dayOfMonth,
     val dayOfWeek: Int = 1,
+    val suggestions: List<CategorySuggestion> = emptyList(),
     val isEditing: Boolean = false,
     val canSave: Boolean = false
 )
@@ -56,6 +61,7 @@ data class AddRecurringUiState(
 class AddRecurringViewModel @Inject constructor(
     private val recurringRepository: RecurringRepository,
     categoryRepository: CategoryRepository,
+    transactionRepository: TransactionRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -78,6 +84,10 @@ class AddRecurringViewModel @Inject constructor(
         .flatMapLatest { categoryRepository.observeByType(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** Every transaction the user has categorized, the suggester's training set. */
+    private val history: StateFlow<List<TransactionWithCategory>> = transactionRepository.observeAllWithCategory()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     init {
         if (editing) {
             viewModelScope.launch {
@@ -94,14 +104,23 @@ class AddRecurringViewModel @Inject constructor(
         }
     }
 
+    /** Categories suggested from the note, learned from the user's own history. */
+    val suggestions: StateFlow<List<CategorySuggestion>> = combine(
+        note, type, history, categories
+    ) { n, t, history, cats ->
+        if (n.isBlank()) emptyList()
+        else CategorySuggester.suggest(n, history, cats, t)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     val uiState: StateFlow<AddRecurringUiState> = combine(
         combine(title, amountInput, type, selectedCategoryId) { t, amount, ty, categoryId ->
             MainFields(t, amount, ty, categoryId)
         },
         combine(note, frequency, dayOfMonth, dayOfWeek) { n, freq, dom, dow ->
             ScheduleFields(n, freq, dom, dow)
-        }
-    ) { main, schedule ->
+        },
+        suggestions
+    ) { main, schedule, suggestions ->
         AddRecurringUiState(
             title = main.title,
             amountInput = main.amountInput,
@@ -111,6 +130,7 @@ class AddRecurringViewModel @Inject constructor(
             frequency = schedule.frequency,
             dayOfMonth = schedule.dayOfMonth,
             dayOfWeek = schedule.dayOfWeek,
+            suggestions = suggestions,
             isEditing = editing,
             canSave = FormValidation.canSaveRecurring(main.title, main.amountInput)
         )

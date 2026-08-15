@@ -115,6 +115,7 @@
     <string name="amount_label">Amount</string>
     <string name="category_label">Category</string>
     <string name="categories">Categories</string>
+    <string name="suggested">Suggested</string>
     <string name="manage">Manage</string>
     <string name="add_category">Add category</string>
     <string name="edit_category">Edit category</string>

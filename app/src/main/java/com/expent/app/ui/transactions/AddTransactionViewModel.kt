@@ -3,8 +3,11 @@ package com.expent.app.ui.transactions
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.expent.app.core.CategorySuggestion
+import com.expent.app.core.CategorySuggester
 import com.expent.app.core.FormValidation
 import com.expent.app.core.util.MoneyUtil
+import com.expent.app.data.local.dao.TransactionWithCategory
 import com.expent.app.data.local.entity.CategoryEntity
 import com.expent.app.data.local.entity.TransactionEntity
 import com.expent.app.data.local.entity.TransactionType
@@ -28,6 +31,7 @@ data class AddTransactionUiState(
     val selectedCategoryId: Long? = null,
     val dateMillis: Long = System.currentTimeMillis(),
     val note: String = "",
+    val suggestions: List<CategorySuggestion> = emptyList(),
     val isEditing: Boolean = false,
     val canSave: Boolean = false
 )
@@ -55,6 +59,10 @@ class AddTransactionViewModel @Inject constructor(
         .flatMapLatest { categoryRepository.observeByType(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** Every transaction the user has categorized, the suggester's training set. */
+    private val history: StateFlow<List<TransactionWithCategory>> = transactionRepository.observeAllWithCategory()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     init {
         if (editing) {
             viewModelScope.launch {
@@ -69,17 +77,37 @@ class AddTransactionViewModel @Inject constructor(
         }
     }
 
+    /** Categories suggested from the note, learned from the user's own history. */
+    val suggestions: StateFlow<List<CategorySuggestion>> = combine(
+        note, type, history, categories
+    ) { n, t, history, cats ->
+        if (n.isBlank()) emptyList()
+        else CategorySuggester.suggest(n, history, cats, t)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    private data class MainFields(
+        val amountInput: String,
+        val type: TransactionType,
+        val selectedCategoryId: Long?,
+        val dateMillis: Long,
+        val note: String
+    )
+
     val uiState: StateFlow<AddTransactionUiState> = combine(
-        amountInput, type, selectedCategoryId, dateMillis, note
-    ) { amount, t, categoryId, date, n ->
+        combine(amountInput, type, selectedCategoryId, dateMillis, note) { amount, t, categoryId, date, n ->
+            MainFields(amount, t, categoryId, date, n)
+        },
+        suggestions
+    ) { main, suggestions ->
         AddTransactionUiState(
-            amountInput = amount,
-            type = t,
-            selectedCategoryId = categoryId,
-            dateMillis = date,
-            note = n,
+            amountInput = main.amountInput,
+            type = main.type,
+            selectedCategoryId = main.selectedCategoryId,
+            dateMillis = main.dateMillis,
+            note = main.note,
+            suggestions = suggestions,
             isEditing = editing,
-            canSave = FormValidation.canSaveTransaction(amount)
+            canSave = FormValidation.canSaveTransaction(main.amountInput)
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AddTransactionUiState())
 
