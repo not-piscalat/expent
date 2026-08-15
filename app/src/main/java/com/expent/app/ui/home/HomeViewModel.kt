@@ -5,10 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.expent.app.core.BudgetPacing
 import com.expent.app.core.CategorySpending
 import com.expent.app.core.DebtPosition
+import com.expent.app.core.Insight
 import com.expent.app.core.MonthlyForecast
 import com.expent.app.core.budgetPacing
 import com.expent.app.core.debtPosition
 import com.expent.app.core.forecast
+import com.expent.app.core.insights
 import com.expent.app.core.spendingByCategory
 import com.expent.app.core.withBudgets
 import com.expent.app.data.local.dao.DebtWithPaid
@@ -46,6 +48,8 @@ data class HomeUiState(
     val pacingByCategory: Map<Long, BudgetPacing> = emptyMap(),
     /** Projection for the next calendar month; independent of the browsed month. */
     val forecast: MonthlyForecast = MonthlyForecast(),
+    /** Explainable flags (unusual spend, duplicates, missed recurring). */
+    val insights: List<Insight> = emptyList(),
     val monthLabel: String = "",
     val isCurrentMonth: Boolean = true
 ) {
@@ -84,11 +88,11 @@ class HomeViewModel @Inject constructor(
 
     private val templates: Flow<List<RecurringTemplateEntity>> = recurringRepository.observeAll()
 
-    /** The three complete months before the current one, one query. */
+    /** Last three complete months plus the current one, one query (forecast filters its own window). */
     private val recentTransactions: Flow<List<TransactionWithCategory>> =
         transactionRepository.observeBetweenWithCategory(
             startInclusive = monthStartMillis(currentMonth.minusMonths(3)),
-            endExclusive = monthStartMillis(currentMonth)
+            endExclusive = monthEndMillis(currentMonth)
         )
 
     private data class HomeContext(
@@ -141,6 +145,7 @@ class HomeViewModel @Inject constructor(
                 budgets = budgets,
                 today = today
             ),
+            insights = insights(forecastCtx.recentTransactions, forecastCtx.templates, today),
             monthLabel = ctx.month.format(monthFormatter),
             isCurrentMonth = isCurrentMonth
         )

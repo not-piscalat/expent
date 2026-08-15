@@ -15,8 +15,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -37,8 +40,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.expent.app.R
 import com.expent.app.core.BudgetPacing
 import com.expent.app.core.CategorySpending
+import com.expent.app.core.Insight
+import com.expent.app.core.InsightKind
 import com.expent.app.core.MonthlyForecast
+import com.expent.app.core.util.DateUtil
 import com.expent.app.core.util.MoneyUtil
+import java.time.LocalDate
+import java.time.ZoneId
 import com.expent.app.ui.components.CategoryAvatar
 import com.expent.app.ui.components.EmptyState
 import com.expent.app.ui.components.TransactionRow
@@ -112,6 +120,12 @@ fun HomeScreen(
         ) {
             item {
                 NetPositionCard(state)
+            }
+        }
+
+        if (state.insights.isNotEmpty()) {
+            item {
+                InsightsCard(state.insights.take(4))
             }
         }
 
@@ -189,6 +203,69 @@ private fun BalanceCard(state: HomeUiState) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun InsightsCard(insights: List<Insight>) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.insights_title),
+                style = MaterialTheme.typography.titleMedium
+            )
+            insights.forEach { insight ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = when (insight.kind) {
+                            InsightKind.UNUSUAL_EXPENSE -> Icons.Filled.Warning
+                            InsightKind.DUPLICATE -> Icons.Filled.Info
+                            InsightKind.MISSED_RECURRING -> Icons.Filled.DateRange
+                        },
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.tertiary
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        text = insightText(insight),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun insightText(insight: Insight): String {
+    val symbol = LocalCurrencySymbol.current
+    return when (insight.kind) {
+        InsightKind.UNUSUAL_EXPENSE -> stringResource(
+            R.string.insight_unusual,
+            MoneyUtil.format(insight.amountCents, symbol = symbol),
+            insight.categoryName ?: stringResource(R.string.uncategorized)
+        )
+        InsightKind.DUPLICATE -> stringResource(
+            R.string.insight_duplicate,
+            MoneyUtil.format(insight.amountCents, symbol = symbol),
+            insight.note.orEmpty()
+        )
+        InsightKind.MISSED_RECURRING -> stringResource(
+            R.string.insight_missed,
+            insight.title.orEmpty(),
+            insight.dateEpochDay?.let { day ->
+                DateUtil.format(
+                    LocalDate.ofEpochDay(day).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                )
+            }.orEmpty(),
+            MoneyUtil.format(insight.amountCents, symbol = symbol)
+        )
     }
 }
 
