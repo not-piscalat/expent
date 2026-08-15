@@ -19,9 +19,18 @@ class SettingsViewModel @Inject constructor(
     val currency: StateFlow<CurrencyOption> = settingsRepository.currency
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CurrencyOption.PHP)
 
+    val startingBalance: StateFlow<Long> = settingsRepository.startingBalance
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0L)
+
     fun setCurrency(option: CurrencyOption) {
         viewModelScope.launch {
             settingsRepository.setCurrency(option)
+        }
+    }
+
+    fun setStartingBalance(cents: Long) {
+        viewModelScope.launch {
+            settingsRepository.setStartingBalance(cents)
         }
     }
 }

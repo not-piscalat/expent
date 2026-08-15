@@ -98,7 +98,10 @@ fun HomeScreen(
             BalanceCard(state)
         }
 
-        if (state.debtPosition.lentCents > 0 || state.debtPosition.borrowedCents > 0) {
+        if (state.startingBalanceCents > 0 ||
+            state.debtPosition.lentCents > 0 ||
+            state.debtPosition.borrowedCents > 0
+        ) {
             item {
                 NetPositionCard(state)
             }
@@ -188,8 +191,12 @@ private fun NetPositionCard(state: HomeUiState) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = stringResource(R.string.home_net_position),
+                text = stringResource(R.string.home_net_worth),
                 style = MaterialTheme.typography.titleMedium
+            )
+            NetPositionRow(
+                label = stringResource(R.string.home_starting_cash),
+                amountCents = state.startingBalanceCents
             )
             NetPositionRow(
                 label = stringResource(R.string.home_balance),
@@ -207,7 +214,7 @@ private fun NetPositionCard(state: HomeUiState) {
             HorizontalDivider()
             Row(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = stringResource(R.string.home_net_position),
+                    text = stringResource(R.string.home_net_worth),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f)
                 )

@@ -7,7 +7,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Download
@@ -18,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -34,12 +37,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.expent.app.R
 import com.expent.app.core.CurrencyOption
+import com.expent.app.core.util.MoneyUtil
+import com.expent.app.ui.theme.LocalCurrencySymbol
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -51,11 +57,13 @@ fun SettingsScreen(
     backupViewModel: BackupViewModel = hiltViewModel()
 ) {
     val currency by settingsViewModel.currency.collectAsStateWithLifecycle()
+    val startingBalance by settingsViewModel.startingBalance.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     var showImportConfirm by remember { mutableStateOf(false) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
+    var showStartingBalanceDialog by remember { mutableStateOf(false) }
 
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -155,6 +163,25 @@ fun SettingsScreen(
             }
 
             Text(
+                text = stringResource(R.string.starting_balance),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.starting_balance_label)) },
+                supportingContent = {
+                    Text(
+                        if (startingBalance > 0) {
+                            MoneyUtil.format(startingBalance, symbol = LocalCurrencySymbol.current)
+                        } else {
+                            stringResource(R.string.starting_balance_not_set)
+                        }
+                    )
+                },
+                modifier = Modifier.clickable { showStartingBalanceDialog = true }
+            )
+
+            Text(
                 text = stringResource(R.string.backup),
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -198,4 +225,53 @@ fun SettingsScreen(
             }
         )
     }
+
+    if (showStartingBalanceDialog) {
+        StartingBalanceDialog(
+            currentCents = startingBalance,
+            onDismiss = { showStartingBalanceDialog = false },
+            onSave = { cents ->
+                settingsViewModel.setStartingBalance(cents)
+                showStartingBalanceDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+private fun StartingBalanceDialog(
+    currentCents: Long,
+    onDismiss: () -> Unit,
+    onSave: (Long) -> Unit
+) {
+    var input by remember { mutableStateOf(MoneyUtil.toInput(currentCents)) }
+    val cents = MoneyUtil.parse(input)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.starting_balance_title)) },
+        text = {
+            OutlinedTextField(
+                value = input,
+                onValueChange = { input = MoneyUtil.sanitizeInput(it) },
+                label = { Text(stringResource(R.string.amount_label)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            TextButton(
+                enabled = cents != null && cents >= 0,
+                onClick = { cents?.let(onSave) }
+            ) {
+                Text(stringResource(R.string.save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
 }

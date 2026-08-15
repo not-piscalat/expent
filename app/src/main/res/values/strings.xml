@@ -13,9 +13,14 @@
     <string name="home_income">Income</string>
     <string name="home_expenses">Expenses</string>
     <string name="home_recent_activity">Recent activity</string>
-    <string name="home_net_position">Net position</string>
+    <string name="home_net_worth">Net worth</string>
+    <string name="home_starting_cash">Starting cash</string>
     <string name="home_lent_out">Lent out</string>
     <string name="home_borrowed">Borrowed</string>
+    <string name="starting_balance">Starting balance</string>
+    <string name="starting_balance_label">Cash on hand when you started tracking</string>
+    <string name="starting_balance_title">Starting balance</string>
+    <string name="starting_balance_not_set">Not set</string>
     <string name="home_spending_by_category">Spending by category</string>
     <string name="home_empty_title">No transactions yet</string>
     <string name="home_empty_past_month">No transactions in this month.</string>

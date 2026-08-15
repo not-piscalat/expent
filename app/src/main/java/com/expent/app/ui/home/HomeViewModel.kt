@@ -13,6 +13,7 @@ import com.expent.app.data.local.entity.CategoryEntity
 import com.expent.app.data.local.entity.TransactionType
 import com.expent.app.data.repository.CategoryRepository
 import com.expent.app.data.repository.DebtRepository
+import com.expent.app.data.repository.SettingsRepository
 import com.expent.app.data.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -34,18 +35,20 @@ data class HomeUiState(
     val expenseCents: Long = 0,
     val spendingByCategory: List<CategorySpending> = emptyList(),
     val debtPosition: DebtPosition = DebtPosition(),
+    val startingBalanceCents: Long = 0,
     val monthLabel: String = "",
     val isCurrentMonth: Boolean = true
 ) {
     val balanceCents: Long get() = incomeCents - expenseCents
-    val netWorthCents: Long get() = balanceCents + debtPosition.netCents
+    val netWorthCents: Long get() = startingBalanceCents + balanceCents + debtPosition.netCents
 }
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     transactionRepository: TransactionRepository,
     categoryRepository: CategoryRepository,
-    debtRepository: DebtRepository
+    debtRepository: DebtRepository,
+    settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     private val monthFormatter = DateTimeFormatter.ofPattern("MMM yyyy")
@@ -66,9 +69,11 @@ class HomeViewModel @Inject constructor(
 
     private val debts: Flow<List<DebtWithPaid>> = debtRepository.observeAll()
 
+    private val startingBalance: Flow<Long> = settingsRepository.startingBalance
+
     val uiState: StateFlow<HomeUiState> = combine(
-        monthTransactions, selectedMonth, categories, debts
-    ) { transactions, month, categories, debts ->
+        monthTransactions, selectedMonth, categories, debts, startingBalance
+    ) { transactions, month, categories, debts, startingBalance ->
         val budgets = categories.associate { it.id to it.budgetCents }
         HomeUiState(
             monthTransactions = transactions,
@@ -80,6 +85,7 @@ class HomeViewModel @Inject constructor(
                 .sumOf { it.transaction.amountCents },
             spendingByCategory = transactions.spendingByCategory().withBudgets(budgets),
             debtPosition = debts.debtPosition(),
+            startingBalanceCents = startingBalance,
             monthLabel = month.format(monthFormatter),
             isCurrentMonth = month == currentMonth
         )
