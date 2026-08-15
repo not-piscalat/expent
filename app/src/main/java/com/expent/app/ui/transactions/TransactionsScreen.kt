@@ -1,17 +1,24 @@
 package com.expent.app.ui.transactions
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -37,7 +44,7 @@ fun TransactionsScreen(
     onEditTransaction: (Long) -> Unit,
     viewModel: TransactionsViewModel = hiltViewModel()
 ) {
-    val transactions by viewModel.transactions.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     var pendingDelete by remember { mutableStateOf<TransactionEntity?>(null) }
 
     Scaffold(
@@ -50,33 +57,70 @@ fun TransactionsScreen(
             }
         }
     ) { innerPadding ->
-        if (transactions.isEmpty()) {
-            Box(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+            OutlinedTextField(
+                value = state.searchQuery,
+                onValueChange = viewModel::updateSearch,
+                placeholder = { Text(stringResource(R.string.search_hint)) },
+                leadingIcon = { Icon(imageVector = Icons.Filled.Search, contentDescription = null) },
+                singleLine = true,
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(bottom = 8.dp)
             ) {
-                EmptyState(
-                    icon = Icons.Filled.ReceiptLong,
-                    title = stringResource(R.string.transactions_empty_title),
-                    body = stringResource(R.string.transactions_empty_body),
-                    modifier = Modifier.padding(32.dp)
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentPadding = PaddingValues(vertical = 8.dp)
-            ) {
-                items(transactions, key = { it.transaction.id }) { item ->
-                    TransactionRow(
-                        item = item,
-                        onClick = { onEditTransaction(item.transaction.id) },
-                        onLongClick = { pendingDelete = item.transaction }
+                item(key = "all") {
+                    FilterChip(
+                        selected = state.selectedMonthStart == null,
+                        onClick = { viewModel.selectMonth(null) },
+                        label = { Text(stringResource(R.string.all_time)) }
                     )
+                }
+                items(state.availableMonths, key = { it.startMillis }) { month ->
+                    FilterChip(
+                        selected = state.selectedMonthStart == month.startMillis,
+                        onClick = { viewModel.selectMonth(month.startMillis) },
+                        label = { Text(month.label) }
+                    )
+                }
+            }
+
+            if (state.transactions.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyState(
+                        icon = Icons.Filled.ReceiptLong,
+                        title = stringResource(
+                            if (state.isFiltering) R.string.no_matching_title else R.string.transactions_empty_title
+                        ),
+                        body = stringResource(
+                            if (state.isFiltering) R.string.no_matching_body else R.string.transactions_empty_body
+                        ),
+                        modifier = Modifier.padding(32.dp)
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    items(state.transactions, key = { it.transaction.id }) { item ->
+                        TransactionRow(
+                            item = item,
+                            onClick = { onEditTransaction(item.transaction.id) },
+                            onLongClick = { pendingDelete = item.transaction }
+                        )
+                    }
                 }
             }
         }

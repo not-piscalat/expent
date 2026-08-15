@@ -19,6 +19,10 @@
 
     <!-- Transactions -->
     <string name="transactions_empty_title">No transactions yet</string>
+    <string name="search_hint">Search</string>
+    <string name="all_time">All time</string>
+    <string name="no_matching_title">No matching transactions</string>
+    <string name="no_matching_body">Try a different search or month filter.</string>
     <string name="transactions_empty_body">Use the + button to log an expense, income, or money movement.</string>
     <string name="add_transaction">Add transaction</string>
     <string name="edit_transaction">Edit transaction</string>
