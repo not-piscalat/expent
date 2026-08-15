@@ -3,6 +3,7 @@ package com.expent.app.ui.recurring
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,6 +25,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -35,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -137,22 +140,34 @@ fun RecurringScreen(
                                         else " · " + stringResource(R.string.expense)
                                 )
                                 Text(
-                                    scheduleSummary(template) + " · " +
-                                        stringResource(R.string.next_due) + ": " +
-                                        LocalDate.ofEpochDay(template.nextDueEpochDay).format(dueFormatter)
+                                    if (template.isActive) {
+                                        scheduleSummary(template) + " · " +
+                                            stringResource(R.string.next_due) + ": " +
+                                            LocalDate.ofEpochDay(template.nextDueEpochDay).format(dueFormatter)
+                                    } else {
+                                        scheduleSummary(template) + " · " + stringResource(R.string.paused)
+                                    }
                                 )
                             }
                         },
                         trailingContent = {
-                            IconButton(onClick = { pendingDelete = template }) {
-                                Icon(
-                                    imageVector = Icons.Filled.Delete,
-                                    contentDescription = stringResource(R.string.delete),
-                                    tint = MaterialTheme.colorScheme.outline
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Switch(
+                                    checked = template.isActive,
+                                    onCheckedChange = { viewModel.setActive(template, it) }
                                 )
+                                IconButton(onClick = { pendingDelete = template }) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Delete,
+                                        contentDescription = stringResource(R.string.delete),
+                                        tint = MaterialTheme.colorScheme.outline
+                                    )
+                                }
                             }
                         },
-                        modifier = Modifier.clickable { onEditRecurring(template.id) }
+                        modifier = Modifier
+                            .alpha(if (template.isActive) 1f else 0.55f)
+                            .clickable { onEditRecurring(template.id) }
                     )
                 }
             }

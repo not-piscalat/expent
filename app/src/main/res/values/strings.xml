@@ -66,6 +66,7 @@
     <string name="next_due">Next</string>
     <string name="recurring_every_month">Every month on the %1$d</string>
     <string name="recurring_every_week">Every week on %1$s</string>
+    <string name="paused">Paused</string>
     <string name="deleted_recurring">Recurring deleted</string>
     <string name="delete_recurring_title">Delete this recurring transaction?</string>
     <string name="delete_recurring_body">It stops generating new transactions. Transactions already logged are kept.</string>

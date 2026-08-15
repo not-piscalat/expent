@@ -107,4 +107,49 @@ class RecurringScheduleTest {
             RecurringSchedule.nextDueDate(LocalDate.of(2026, 1, 5), RecurringFrequency.WEEKLY, dayOfMonth = 1)
         )
     }
+
+    // --- resumeDueDate: skipping occurrences missed while paused ---
+
+    @Test
+    fun `resume keeps a due date still in the future`() {
+        val today = LocalDate.of(2026, 1, 15)
+        val future = LocalDate.of(2026, 1, 20).toEpochDay()
+        assertEquals(
+            future,
+            RecurringSchedule.resumeDueDate(future, today, RecurringFrequency.MONTHLY, dayOfMonth = 20, dayOfWeek = 1)
+        )
+    }
+
+    @Test
+    fun `resume skips occurrences missed while paused`() {
+        val today = LocalDate.of(2026, 1, 15)
+        assertEquals(
+            LocalDate.of(2026, 1, 20).toEpochDay(),
+            RecurringSchedule.resumeDueDate(
+                LocalDate.of(2026, 1, 10).toEpochDay(), today, RecurringFrequency.MONTHLY, dayOfMonth = 20, dayOfWeek = 1
+            )
+        )
+    }
+
+    @Test
+    fun `resume on the due day itself moves to the next occurrence`() {
+        val today = LocalDate.of(2026, 1, 15)
+        assertEquals(
+            LocalDate.of(2026, 2, 15).toEpochDay(),
+            RecurringSchedule.resumeDueDate(
+                today.toEpochDay(), today, RecurringFrequency.MONTHLY, dayOfMonth = 15, dayOfWeek = 1
+            )
+        )
+    }
+
+    @Test
+    fun `resume skips missed weekly occurrences`() {
+        val today = LocalDate.of(2026, 1, 12) // Monday
+        assertEquals(
+            LocalDate.of(2026, 1, 19).toEpochDay(),
+            RecurringSchedule.resumeDueDate(
+                LocalDate.of(2026, 1, 5).toEpochDay(), today, RecurringFrequency.WEEKLY, dayOfMonth = 1, dayOfWeek = 1
+            )
+        )
+    }
 }

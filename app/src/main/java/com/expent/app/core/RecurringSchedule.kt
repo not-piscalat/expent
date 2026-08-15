@@ -54,4 +54,24 @@ object RecurringSchedule {
         }
         RecurringFrequency.WEEKLY -> previous.plusWeeks(1)
     }
+
+    /**
+     * The next-due day after a pause. A due date still in the future is kept as-is;
+     * an overdue one skips every missed occurrence and resumes strictly after [today]
+     * (a paused bill does not backfill while it was paused).
+     */
+    fun resumeDueDate(
+        nextDueEpochDay: Long,
+        today: LocalDate,
+        frequency: RecurringFrequency,
+        dayOfMonth: Int,
+        dayOfWeek: Int
+    ): Long {
+        val due = LocalDate.ofEpochDay(nextDueEpochDay)
+        return if (due.isAfter(today)) {
+            nextDueEpochDay
+        } else {
+            firstDueDate(today, frequency, dayOfMonth, dayOfWeek).toEpochDay()
+        }
+    }
 }
