@@ -62,7 +62,13 @@ fun AddTransactionScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.add_transaction_title)) },
+                title = {
+                    Text(
+                        stringResource(
+                            if (state.isEditing) R.string.edit_transaction else R.string.add_transaction_title
+                        )
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
                         Icon(

@@ -30,7 +30,7 @@ import com.expent.app.ui.home.HomeScreen
 import com.expent.app.ui.transactions.AddTransactionScreen
 import com.expent.app.ui.transactions.TransactionsScreen
 
-private const val ADD_TRANSACTION_ROUTE = "add_transaction"
+private const val ADD_TRANSACTION_ROUTE = "add_transaction?transactionId={transactionId}"
 private const val ADD_DEBT_ROUTE = "add_debt?debtId={debtId}"
 private const val DEBT_DETAIL_ROUTE = "debt_detail/{debtId}"
 
@@ -85,7 +85,8 @@ fun ExpentApp() {
             composable(ExpentDestination.HOME.route) { HomeScreen() }
             composable(ExpentDestination.TRANSACTIONS.route) {
                 TransactionsScreen(
-                    onAddTransaction = { navController.navigate(ADD_TRANSACTION_ROUTE) }
+                    onAddTransaction = { navController.navigate("add_transaction") },
+                    onEditTransaction = { id -> navController.navigate("add_transaction?transactionId=$id") }
                 )
             }
             composable(ExpentDestination.DEBTS.route) {
@@ -94,7 +95,12 @@ fun ExpentApp() {
                     onOpenDebt = { debtId -> navController.navigate("debt_detail/$debtId") }
                 )
             }
-            composable(ADD_TRANSACTION_ROUTE) {
+            composable(
+                route = ADD_TRANSACTION_ROUTE,
+                arguments = listOf(
+                    navArgument("transactionId") { type = NavType.LongType; defaultValue = -1L }
+                )
+            ) {
                 AddTransactionScreen(onDone = { navController.popBackStack() })
             }
             composable(

@@ -21,6 +21,9 @@
     <string name="transactions_empty_title">No transactions yet</string>
     <string name="transactions_empty_body">Use the + button to log an expense, income, or money movement.</string>
     <string name="add_transaction">Add transaction</string>
+    <string name="edit_transaction">Edit transaction</string>
+    <string name="delete_transaction_title">Delete this transaction?</string>
+    <string name="delete_transaction_body">This removes the transaction from your records. This action cannot be undone.</string>
 
     <!-- Debts -->
     <string name="debts_empty_title">No debts tracked</string>

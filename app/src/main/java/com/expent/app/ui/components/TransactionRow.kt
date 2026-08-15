@@ -1,6 +1,8 @@
 package com.expent.app.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -20,8 +22,14 @@ import com.expent.app.core.util.MoneyUtil
 import com.expent.app.data.local.dao.TransactionWithCategory
 import com.expent.app.data.local.entity.TransactionType
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun TransactionRow(item: TransactionWithCategory, modifier: Modifier = Modifier) {
+fun TransactionRow(
+    item: TransactionWithCategory,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {},
+    onLongClick: () -> Unit = {}
+) {
     val transaction = item.transaction
     val title = item.categoryName
         ?: transaction.note
@@ -53,7 +61,7 @@ fun TransactionRow(item: TransactionWithCategory, modifier: Modifier = Modifier)
                 color = if (isExpense) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
             )
         },
-        modifier = modifier
+        modifier = modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
     )
 }
 
