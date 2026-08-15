@@ -23,7 +23,10 @@ import androidx.navigation.compose.rememberNavController
 import com.expent.app.R
 import com.expent.app.ui.debts.DebtsScreen
 import com.expent.app.ui.home.HomeScreen
+import com.expent.app.ui.transactions.AddTransactionScreen
 import com.expent.app.ui.transactions.TransactionsScreen
+
+private const val ADD_TRANSACTION_ROUTE = "add_transaction"
 
 enum class ExpentDestination(
     val route: String,
@@ -74,8 +77,15 @@ fun ExpentApp() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(ExpentDestination.HOME.route) { HomeScreen() }
-            composable(ExpentDestination.TRANSACTIONS.route) { TransactionsScreen() }
+            composable(ExpentDestination.TRANSACTIONS.route) {
+                TransactionsScreen(
+                    onAddTransaction = { navController.navigate(ADD_TRANSACTION_ROUTE) }
+                )
+            }
             composable(ExpentDestination.DEBTS.route) { DebtsScreen() }
+            composable(ADD_TRANSACTION_ROUTE) {
+                AddTransactionScreen(onDone = { navController.popBackStack() })
+            }
         }
     }
 }

@@ -33,6 +33,19 @@
     <string name="debt_total">Total</string>
     <string name="debt_paid">Paid</string>
 
+    <!-- Add transaction -->
+    <string name="add_transaction_title">Add transaction</string>
+    <string name="expense">Expense</string>
+    <string name="income">Income</string>
+    <string name="amount_label">Amount</string>
+    <string name="category_label">Category</string>
+    <string name="date_label">Date</string>
+    <string name="note_label">Note (optional)</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+
     <!-- Shared -->
+    <string name="back">Back</string>
     <string name="uncategorized">Uncategorized</string>
 </resources>

@@ -25,12 +25,15 @@ import com.expent.app.ui.components.EmptyState
 import com.expent.app.ui.components.TransactionRow
 
 @Composable
-fun TransactionsScreen(viewModel: TransactionsViewModel = hiltViewModel()) {
+fun TransactionsScreen(
+    onAddTransaction: () -> Unit,
+    viewModel: TransactionsViewModel = hiltViewModel()
+) {
     val transactions by viewModel.transactions.collectAsStateWithLifecycle()
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { /* TODO: add-transaction flow (next step) */ }) {
+            FloatingActionButton(onClick = onAddTransaction) {
                 Icon(
                     imageVector = Icons.Filled.Add,
                     contentDescription = stringResource(R.string.add_transaction)
