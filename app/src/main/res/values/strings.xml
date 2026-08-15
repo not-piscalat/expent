@@ -130,7 +130,11 @@
     <string name="home_forecast_expenses">Expected expenses</string>
     <string name="home_forecast_budgeted">Budgeted expenses</string>
     <string name="home_forecast_net">Expected net</string>
+    <string name="forecast_accuracy">Forecast accuracy</string>
+    <string name="forecast_accuracy_income">Income within %1$d%%</string>
+    <string name="forecast_accuracy_expenses">Expenses within %1$d%%</string>
     <string name="insights_title">Insights</string>
+    <string name="dismiss">Dismiss</string>
     <string name="insight_unusual">Unusually large · %1$s in %2$s</string>
     <string name="insight_duplicate">Possible duplicate · %1$s %2$s</string>
     <string name="insight_missed">%1$s due on %2$s · %3$s</string>

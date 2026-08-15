@@ -5,11 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.expent.app.core.BudgetPacing
 import com.expent.app.core.CategorySpending
 import com.expent.app.core.DebtPosition
+import com.expent.app.core.ForecastAccuracy
 import com.expent.app.core.Insight
 import com.expent.app.core.MonthlyForecast
 import com.expent.app.core.budgetPacing
 import com.expent.app.core.debtPosition
 import com.expent.app.core.forecast
+import com.expent.app.core.forecastAccuracy
 import com.expent.app.core.insights
 import com.expent.app.core.spendingByCategory
 import com.expent.app.core.withBudgets
@@ -32,7 +34,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
@@ -48,6 +52,8 @@ data class HomeUiState(
     val pacingByCategory: Map<Long, BudgetPacing> = emptyMap(),
     /** Projection for the next calendar month; independent of the browsed month. */
     val forecast: MonthlyForecast = MonthlyForecast(),
+    /** How close past forecasts were to reality. */
+    val forecastAccuracy: ForecastAccuracy = ForecastAccuracy(),
     /** Explainable flags (unusual spend, duplicates, missed recurring). */
     val insights: List<Insight> = emptyList(),
     val monthLabel: String = "",
@@ -62,7 +68,7 @@ class HomeViewModel @Inject constructor(
     transactionRepository: TransactionRepository,
     categoryRepository: CategoryRepository,
     debtRepository: DebtRepository,
-    settingsRepository: SettingsRepository,
+    private val settingsRepository: SettingsRepository,
     recurringRepository: RecurringRepository
 ) : ViewModel() {
 
@@ -88,10 +94,11 @@ class HomeViewModel @Inject constructor(
 
     private val templates: Flow<List<RecurringTemplateEntity>> = recurringRepository.observeAll()
 
-    /** Last three complete months plus the current one, one query (forecast filters its own window). */
+    /** The last six complete months plus the current one: enough history for the
+     *  forecast's baseline, accuracy scoring, and anomaly medians. One query. */
     private val recentTransactions: Flow<List<TransactionWithCategory>> =
         transactionRepository.observeBetweenWithCategory(
-            startInclusive = monthStartMillis(currentMonth.minusMonths(3)),
+            startInclusive = monthStartMillis(currentMonth.minusMonths(6)),
             endExclusive = monthEndMillis(currentMonth)
         )
 
@@ -108,14 +115,17 @@ class HomeViewModel @Inject constructor(
         val recentTransactions: List<TransactionWithCategory>
     )
 
+    private val dismissedInsights: Flow<Set<String>> = settingsRepository.dismissedInsightKeys
+
     val uiState: StateFlow<HomeUiState> = combine(
         combine(monthTransactions, selectedMonth, categories, debts) { t, m, c, d ->
             HomeContext(t, m, c, d)
         },
         combine(startingBalance, templates, recentTransactions) { sb, tpl, recent ->
             ForecastContext(sb, tpl, recent)
-        }
-    ) { ctx, forecastCtx ->
+        },
+        dismissedInsights
+    ) { ctx, forecastCtx, dismissed ->
         val budgets = ctx.categories.associate { it.id to it.budgetCents }
         val spending = ctx.transactions.spendingByCategory().withBudgets(budgets)
         val isCurrentMonth = ctx.month == currentMonth
@@ -143,9 +153,16 @@ class HomeViewModel @Inject constructor(
                 templates = forecastCtx.templates,
                 pastTransactions = forecastCtx.recentTransactions,
                 budgets = budgets,
+                targetMonth = YearMonth.from(today).plusMonths(1)
+            ),
+            forecastAccuracy = forecastAccuracy(
+                templates = forecastCtx.templates,
+                transactions = forecastCtx.recentTransactions,
+                budgets = budgets,
                 today = today
             ),
-            insights = insights(forecastCtx.recentTransactions, forecastCtx.templates, today),
+            insights = insights(forecastCtx.recentTransactions, forecastCtx.templates, today)
+                .filter { it.dismissKey !in dismissed },
             monthLabel = ctx.month.format(monthFormatter),
             isCurrentMonth = isCurrentMonth
         )
@@ -157,6 +174,13 @@ class HomeViewModel @Inject constructor(
 
     fun previousMonth() {
         selectedMonth.value = selectedMonth.value.minusMonths(1)
+    }
+
+    /** Hides an insight permanently (until the same situation recurs with a new key). */
+    fun dismissInsight(key: String) {
+        viewModelScope.launch {
+            settingsRepository.dismissInsight(key)
+        }
     }
 
     /** Moves forward one month but never beyond the current month. */

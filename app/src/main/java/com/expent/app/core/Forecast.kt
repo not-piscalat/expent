@@ -4,13 +4,17 @@ import com.expent.app.data.local.dao.TransactionWithCategory
 import com.expent.app.data.local.entity.RecurringTemplateEntity
 import com.expent.app.data.local.entity.TransactionType
 import java.time.LocalDate
+import java.time.YearMonth
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
- * Projected next month, from three signals:
+ * Projection for a target month, from three signals:
  *  - recurring templates (deterministic: each active template fires once per month,
  *    or once per weekday occurrence for weekly schedules);
- *  - a variable baseline: the average of the last three complete months, with each
- *    month's recurring contribution removed so nothing is double counted;
+ *  - a variable baseline: the average of the three complete months before the
+ *    target, with each month's recurring contribution removed so nothing is
+ *    double counted;
  *  - category budgets, shown as a comparison rather than a prediction.
  */
 data class MonthlyForecast(
@@ -23,24 +27,35 @@ data class MonthlyForecast(
     val hasForecast: Boolean get() = incomeCents > 0 || expenseCents > 0
 }
 
+/**
+ * How far the recomputed forecast was from reality, averaged over the last
+ * complete months. Null per side when there was no actual activity to compare.
+ */
+data class ForecastAccuracy(
+    val averageIncomeDeviationPct: Int? = null,
+    val averageExpenseDeviationPct: Int? = null
+) {
+    val hasData: Boolean get() = averageIncomeDeviationPct != null || averageExpenseDeviationPct != null
+}
+
 fun forecast(
     templates: List<RecurringTemplateEntity>,
     pastTransactions: List<TransactionWithCategory>,
     budgets: Map<Long, Long?>,
-    today: LocalDate
+    targetMonth: YearMonth
 ): MonthlyForecast {
     val active = templates.filter { it.isActive }
-    val nextMonth = today.plusMonths(1).withDayOfMonth(1)
+    val targetStart = targetMonth.atDay(1)
 
     val recurringIncome = active
         .filter { it.type == TransactionType.INCOME }
-        .sumOf { it.amountCents * occurrences(nextMonth, it).toLong() }
+        .sumOf { it.amountCents * occurrences(targetStart, it).toLong() }
     val recurringExpense = active
         .filter { it.type == TransactionType.EXPENSE }
-        .sumOf { it.amountCents * occurrences(nextMonth, it).toLong() }
+        .sumOf { it.amountCents * occurrences(targetStart, it).toLong() }
 
-    // The three complete months before the current one.
-    val completeMonths = (1..3).map { today.withDayOfMonth(1).minusMonths(it.toLong()) }
+    // The three complete months before the target.
+    val completeMonths = (1..3).map { targetMonth.minusMonths(it.toLong()).atDay(1) }
 
     fun variable(type: TransactionType): Long {
         val samples = completeMonths.map { month ->
@@ -73,6 +88,44 @@ fun forecast(
         budgetedExpenseCents = budgeted
     )
 }
+
+/**
+ * Recomputes what the forecast would have predicted for each of the last
+ * [months] complete months (using the current template state) and measures the
+ * average absolute deviation from what actually happened.
+ */
+fun forecastAccuracy(
+    templates: List<RecurringTemplateEntity>,
+    transactions: List<TransactionWithCategory>,
+    budgets: Map<Long, Long?>,
+    today: LocalDate,
+    months: Int = 3
+): ForecastAccuracy {
+    val current = YearMonth.from(today)
+    val deviations = (1..months).map { offset ->
+        val month = current.minusMonths(offset.toLong())
+        val predicted = forecast(templates, transactions, budgets, targetMonth = month)
+        val monthStart = month.atDay(1)
+        val actualIncome = transactions
+            .filter { it.transaction.type == TransactionType.INCOME && inMonth(it, monthStart) }
+            .sumOf { it.transaction.amountCents }
+        val actualExpense = transactions
+            .filter { it.transaction.type == TransactionType.EXPENSE && inMonth(it, monthStart) }
+            .sumOf { it.transaction.amountCents }
+        deviation(predicted.incomeCents, actualIncome) to deviation(predicted.expenseCents, actualExpense)
+    }
+    return ForecastAccuracy(
+        averageIncomeDeviationPct = deviations.mapNotNull { it.first }.averageOrNull(),
+        averageExpenseDeviationPct = deviations.mapNotNull { it.second }.averageOrNull()
+    )
+}
+
+/** Absolute percent deviation; null when there was no actual to compare against. */
+private fun deviation(predicted: Long, actual: Long): Int? =
+    if (actual > 0) (abs(predicted - actual) * 100 / actual).toInt() else null
+
+private fun List<Int>.averageOrNull(): Int? =
+    if (isEmpty()) null else average().roundToInt()
 
 private fun inMonth(item: TransactionWithCategory, month: LocalDate): Boolean {
     val millis = item.transaction.timestamp

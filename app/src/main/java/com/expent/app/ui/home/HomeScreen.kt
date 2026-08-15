@@ -1,5 +1,6 @@
 package com.expent.app.ui.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.ReceiptLong
@@ -40,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.expent.app.R
 import com.expent.app.core.BudgetPacing
 import com.expent.app.core.CategorySpending
+import com.expent.app.core.ForecastAccuracy
 import com.expent.app.core.Insight
 import com.expent.app.core.InsightKind
 import com.expent.app.core.MonthlyForecast
@@ -55,6 +58,7 @@ import com.expent.app.ui.theme.LocalCurrencySymbol
 @Composable
 fun HomeScreen(
     onOpenSettings: () -> Unit,
+    onOpenTransaction: (Long) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -110,7 +114,7 @@ fun HomeScreen(
 
         if (state.forecast.hasForecast) {
             item {
-                ForecastCard(state.forecast)
+                ForecastCard(state.forecast, state.forecastAccuracy)
             }
         }
 
@@ -125,7 +129,11 @@ fun HomeScreen(
 
         if (state.insights.isNotEmpty()) {
             item {
-                InsightsCard(state.insights.take(4))
+                InsightsCard(
+                    insights = state.insights.take(4),
+                    onOpenTransaction = onOpenTransaction,
+                    onDismiss = viewModel::dismissInsight
+                )
             }
         }
 
@@ -207,7 +215,11 @@ private fun BalanceCard(state: HomeUiState) {
 }
 
 @Composable
-private fun InsightsCard(insights: List<Insight>) {
+private fun InsightsCard(
+    insights: List<Insight>,
+    onOpenTransaction: (Long) -> Unit,
+    onDismiss: (String) -> Unit
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
@@ -220,7 +232,15 @@ private fun InsightsCard(insights: List<Insight>) {
                 style = MaterialTheme.typography.titleMedium
             )
             insights.forEach { insight ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                val transactionId = insight.transactionId
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = transactionId != null) {
+                            transactionId?.let(onOpenTransaction)
+                        }
+                ) {
                     Icon(
                         imageVector = when (insight.kind) {
                             InsightKind.UNUSUAL_EXPENSE -> Icons.Filled.Warning
@@ -236,6 +256,13 @@ private fun InsightsCard(insights: List<Insight>) {
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f)
                     )
+                    IconButton(onClick = { onDismiss(insight.dismissKey) }) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = stringResource(R.string.dismiss),
+                            tint = MaterialTheme.colorScheme.outline
+                        )
+                    }
                 }
             }
         }
@@ -270,7 +297,7 @@ private fun insightText(insight: Insight): String {
 }
 
 @Composable
-private fun ForecastCard(forecast: MonthlyForecast) {
+private fun ForecastCard(forecast: MonthlyForecast, accuracy: ForecastAccuracy) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
@@ -313,6 +340,21 @@ private fun ForecastCard(forecast: MonthlyForecast) {
                     } else {
                         MaterialTheme.colorScheme.error
                     }
+                )
+            }
+            if (accuracy.hasData) {
+                val parts = buildList {
+                    accuracy.averageIncomeDeviationPct?.let {
+                        add(stringResource(R.string.forecast_accuracy_income, it))
+                    }
+                    accuracy.averageExpenseDeviationPct?.let {
+                        add(stringResource(R.string.forecast_accuracy_expenses, it))
+                    }
+                }
+                Text(
+                    text = stringResource(R.string.forecast_accuracy) + " · " + parts.joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

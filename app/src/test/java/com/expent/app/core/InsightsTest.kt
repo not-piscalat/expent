@@ -65,6 +65,8 @@ class InsightsTest {
         assertEquals(1, unusual.size)
         assertEquals(15_000L, unusual.single().amountCents)
         assertEquals("Food", unusual.single().categoryName)
+        assertEquals(list[3].transaction.id, unusual.single().transactionId)
+        assertEquals("txn:${list[3].transaction.id}", unusual.single().dismissKey)
     }
 
     @Test
@@ -96,6 +98,8 @@ class InsightsTest {
         val dup = result.filter { it.kind == InsightKind.DUPLICATE }
         assertEquals(1, dup.size)
         assertEquals(1_200L, dup.single().amountCents)
+        assertEquals(list[0].transaction.id, dup.single().transactionId)
+        assertEquals("txn:${list[0].transaction.id}", dup.single().dismissKey)
     }
 
     @Test
@@ -134,6 +138,8 @@ class InsightsTest {
         assertEquals(1, missed.size)
         assertEquals("Salary", missed.single().title)
         assertEquals(LocalDate.of(2026, 8, 10).toEpochDay(), missed.single().dateEpochDay)
+        assertEquals(null, missed.single().transactionId)
+        assertEquals("tpl:0:${LocalDate.of(2026, 8, 10).toEpochDay()}", missed.single().dismissKey)
     }
 
     @Test

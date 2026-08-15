@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.expent.app.core.CurrencyOption
 import com.expent.app.core.ThemeOption
@@ -23,6 +24,7 @@ class SettingsRepository @Inject constructor(
     private val currencyKey = stringPreferencesKey("currency")
     private val startingBalanceKey = longPreferencesKey("starting_balance")
     private val themeKey = stringPreferencesKey("theme")
+    private val dismissedInsightsKey = stringSetPreferencesKey("dismissed_insights")
 
     val currency: Flow<CurrencyOption> = context.settingsDataStore.data
         .map { prefs -> CurrencyOption.fromCode(prefs[currencyKey]) }
@@ -33,6 +35,10 @@ class SettingsRepository @Inject constructor(
 
     val theme: Flow<ThemeOption> = context.settingsDataStore.data
         .map { prefs -> ThemeOption.fromCode(prefs[themeKey]) }
+
+    /** Insight keys the user has reviewed and dismissed. */
+    val dismissedInsightKeys: Flow<Set<String>> = context.settingsDataStore.data
+        .map { prefs -> prefs[dismissedInsightsKey] ?: emptySet() }
 
     suspend fun setCurrency(option: CurrencyOption) {
         context.settingsDataStore.edit { prefs ->
@@ -49,6 +55,12 @@ class SettingsRepository @Inject constructor(
     suspend fun setTheme(option: ThemeOption) {
         context.settingsDataStore.edit { prefs ->
             prefs[themeKey] = option.code
+        }
+    }
+
+    suspend fun dismissInsight(key: String) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[dismissedInsightsKey] = (prefs[dismissedInsightsKey] ?: emptySet()) + key
         }
     }
 }

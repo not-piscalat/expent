@@ -15,8 +15,18 @@ data class Insight(
     val note: String? = null,
     /** Epoch day of the involved transaction or due occurrence. */
     val dateEpochDay: Long? = null,
-    val title: String? = null
-)
+    val title: String? = null,
+    /** The transaction this insight points at, for UNUSUAL_EXPENSE and DUPLICATE. */
+    val transactionId: Long? = null,
+    /** The recurring template behind a MISSED_RECURRING insight. */
+    val templateId: Long? = null
+) {
+    /** Stable identity for dismissal; a missed flag returns next month with a new key. */
+    val dismissKey: String = when (kind) {
+        InsightKind.UNUSUAL_EXPENSE, InsightKind.DUPLICATE -> "txn:${transactionId ?: 0}"
+        InsightKind.MISSED_RECURRING -> "tpl:${templateId ?: 0}:${dateEpochDay ?: 0}"
+    }
+}
 
 /** Duplicates are flagged when the same amount and note recur within this many days. */
 private const val DUPLICATE_WINDOW_DAYS = 3L
@@ -48,7 +58,8 @@ fun insights(
                 kind = InsightKind.MISSED_RECURRING,
                 amountCents = template.amountCents,
                 dateEpochDay = template.nextDueEpochDay,
-                title = template.title
+                title = template.title,
+                templateId = template.id
             )
         }
 
@@ -64,7 +75,8 @@ fun insights(
                         kind = InsightKind.UNUSUAL_EXPENSE,
                         amountCents = item.transaction.amountCents,
                         categoryName = item.categoryName,
-                        dateEpochDay = epochDayOf(item.transaction.timestamp)
+                        dateEpochDay = epochDayOf(item.transaction.timestamp),
+                        transactionId = item.transaction.id
                     )
                 }
             }
@@ -93,7 +105,8 @@ fun insights(
                         kind = InsightKind.DUPLICATE,
                         amountCents = sorted[i].transaction.amountCents,
                         note = sorted[i].transaction.note,
-                        dateEpochDay = a
+                        dateEpochDay = a,
+                        transactionId = sorted[i].transaction.id
                     )
                     break // one flag per group
                 }

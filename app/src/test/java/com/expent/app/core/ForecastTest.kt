@@ -14,7 +14,8 @@ import java.time.ZoneId
 
 class ForecastTest {
 
-    private val today = LocalDate.of(2026, 8, 15)
+    /** The forecast's target month: September 2026 (today is 2026-08-15). */
+    private val target = java.time.YearMonth.of(2026, 9)
     private val zone = ZoneId.systemDefault()
 
     private fun txn(amountCents: Long, type: TransactionType, year: Int, month: Int, day: Int = 15) =
@@ -52,7 +53,7 @@ class ForecastTest {
 
     @Test
     fun `forecast is zero with no templates and no history`() {
-        val result = forecast(emptyList(), emptyList(), emptyMap(), today)
+        val result = forecast(emptyList(), emptyList(), emptyMap(), target)
         assertFalse(result.hasForecast)
         assertEquals(0L, result.incomeCents)
         assertEquals(0L, result.expenseCents)
@@ -65,7 +66,7 @@ class ForecastTest {
             template(TransactionType.EXPENSE, 1_000, RecurringFrequency.WEEKLY)
         )
         // Sep 2026 starts on a Tuesday -> 4 Mondays -> 4 weekly occurrences.
-        val result = forecast(templates, emptyList(), emptyMap(), today)
+        val result = forecast(templates, emptyList(), emptyMap(), target)
         assertEquals(30_000L, result.incomeCents)
         assertEquals(4_000L, result.expenseCents)
         assertEquals(26_000L, result.netCents)
@@ -87,7 +88,7 @@ class ForecastTest {
         val templates = listOf(template(TransactionType.INCOME, 30_000, RecurringFrequency.MONTHLY))
         // July: 35,000 total income (30,000 recurring salary + 5,000 bonus).
         val past = listOf(txn(35_000, TransactionType.INCOME, 2026, 7))
-        val result = forecast(templates, past, emptyMap(), today)
+        val result = forecast(templates, past, emptyMap(), target)
         // Next month recurring 30,000 + variable 5,000.
         assertEquals(35_000L, result.incomeCents)
     }
@@ -97,7 +98,7 @@ class ForecastTest {
         val templates = listOf(template(TransactionType.EXPENSE, 1_000, RecurringFrequency.WEEKLY))
         // May 2026 has 4 Mondays -> recurring estimate 4,000, but only 3,000 was actually spent.
         val past = listOf(txn(3_000, TransactionType.EXPENSE, 2026, 5))
-        val result = forecast(templates, past, emptyMap(), today)
+        val result = forecast(templates, past, emptyMap(), target)
         assertEquals(4_000L, result.expenseCents) // recurring only; variable clamped to 0
     }
 
@@ -106,7 +107,7 @@ class ForecastTest {
         val templates = listOf(
             template(TransactionType.INCOME, 30_000, RecurringFrequency.MONTHLY, active = false)
         )
-        val result = forecast(templates, emptyList(), emptyMap(), today)
+        val result = forecast(templates, emptyList(), emptyMap(), target)
         assertFalse(result.hasForecast)
         assertEquals(0L, result.incomeCents)
     }
@@ -115,11 +116,11 @@ class ForecastTest {
     fun `sums positive budgets and reports null when none set`() {
         val templates = listOf(template(TransactionType.EXPENSE, 1_000, RecurringFrequency.MONTHLY))
         val withBudgets = forecast(
-            templates, emptyList(), mapOf(1L to 5_000, 2L to 3_000, 3L to -1, 4L to null), today
+            templates, emptyList(), mapOf(1L to 5_000, 2L to 3_000, 3L to -1, 4L to null), target
         )
         assertEquals(8_000L, withBudgets.budgetedExpenseCents)
 
-        val without = forecast(templates, emptyList(), emptyMap(), today)
+        val without = forecast(templates, emptyList(), emptyMap(), target)
         assertNull(without.budgetedExpenseCents)
     }
 
@@ -128,7 +129,7 @@ class ForecastTest {
         val templates = listOf(template(TransactionType.INCOME, 30_000, RecurringFrequency.MONTHLY))
         // Only July had data (35,000 total). June/May are empty and must not count as 0.
         val past = listOf(txn(35_000, TransactionType.INCOME, 2026, 7))
-        val result = forecast(templates, past, emptyMap(), today)
+        val result = forecast(templates, past, emptyMap(), target)
         assertEquals(35_000L, result.incomeCents)
         assertTrue(result.hasForecast)
     }

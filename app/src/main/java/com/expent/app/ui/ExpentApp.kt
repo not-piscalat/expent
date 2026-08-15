@@ -108,7 +108,10 @@ fun ExpentApp(viewModel: SettingsViewModel = hiltViewModel()) {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(ExpentDestination.HOME.route) {
-                HomeScreen(onOpenSettings = { navController.navigate(SETTINGS_ROUTE) })
+                HomeScreen(
+                    onOpenSettings = { navController.navigate(SETTINGS_ROUTE) },
+                    onOpenTransaction = { id -> navController.navigate("add_transaction?transactionId=$id") }
+                )
             }
             composable(ExpentDestination.TRANSACTIONS.route) {
                 TransactionsScreen(
