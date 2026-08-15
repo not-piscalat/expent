@@ -5,7 +5,10 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -30,15 +33,18 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -48,6 +54,7 @@ import com.expent.app.core.CurrencyOption
 import com.expent.app.core.ThemeOption
 import com.expent.app.core.util.MoneyUtil
 import com.expent.app.ui.theme.LocalCurrencySymbol
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -68,6 +75,20 @@ fun SettingsScreen(
     var showImportConfirm by remember { mutableStateOf(false) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
     var showStartingBalanceDialog by remember { mutableStateOf(false) }
+    var versionTaps by remember { mutableStateOf(0) }
+    val versionName = remember {
+        runCatching {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+        }.getOrNull() ?: "?"
+    }
+
+    // Hidden test-crash trigger: tap the version footer 7 times to verify Crashlytics.
+    LaunchedEffect(versionTaps) {
+        if (versionTaps > 0) {
+            delay(2_000)
+            versionTaps = 0
+        }
+    }
 
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -138,11 +159,17 @@ fun SettingsScreen(
             )
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 56.dp)
+            ) {
             Text(
                 text = stringResource(R.string.currency_label),
                 style = MaterialTheme.typography.labelLarge,
@@ -242,6 +269,25 @@ fun SettingsScreen(
                 modifier = Modifier.clickable {
                     importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
                 }
+            )
+
+            }
+            Text(
+                text = stringResource(R.string.settings_version, versionName),
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp)
+                    .clickable {
+                        versionTaps++
+                        if (versionTaps >= 7) {
+                            versionTaps = 0
+                            // Uncaught exception on the main thread: Crashlytics catches and reports it.
+                            throw RuntimeException("Expent test crash — triggered by 7 taps on the version footer")
+                        }
+                    }
             )
         }
     }
