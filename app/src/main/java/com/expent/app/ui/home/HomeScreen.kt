@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -97,6 +98,12 @@ fun HomeScreen(
             BalanceCard(state)
         }
 
+        if (state.debtPosition.lentCents > 0 || state.debtPosition.borrowedCents > 0) {
+            item {
+                NetPositionCard(state)
+            }
+        }
+
         if (state.spendingByCategory.isNotEmpty()) {
             item {
                 SpendingBreakdownCard(state.spendingByCategory)
@@ -168,6 +175,70 @@ private fun BalanceCard(state: HomeUiState) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun NetPositionCard(state: HomeUiState) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.home_net_position),
+                style = MaterialTheme.typography.titleMedium
+            )
+            NetPositionRow(
+                label = stringResource(R.string.home_balance),
+                amountCents = state.balanceCents
+            )
+            NetPositionRow(
+                label = stringResource(R.string.home_lent_out),
+                amountCents = state.debtPosition.lentCents
+            )
+            NetPositionRow(
+                label = stringResource(R.string.home_borrowed),
+                amountCents = -state.debtPosition.borrowedCents,
+                valueColor = MaterialTheme.colorScheme.error
+            )
+            HorizontalDivider()
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.home_net_position),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = MoneyUtil.format(state.netWorthCents, symbol = LocalCurrencySymbol.current),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (state.netWorthCents >= 0) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.error
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NetPositionRow(label: String, amountCents: Long, valueColor: Color? = null) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = MoneyUtil.format(amountCents, symbol = LocalCurrencySymbol.current),
+            style = MaterialTheme.typography.bodyMedium,
+            color = valueColor ?: MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 

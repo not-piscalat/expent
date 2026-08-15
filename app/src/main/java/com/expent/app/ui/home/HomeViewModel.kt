@@ -3,12 +3,16 @@ package com.expent.app.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.expent.app.core.CategorySpending
+import com.expent.app.core.DebtPosition
+import com.expent.app.core.debtPosition
 import com.expent.app.core.spendingByCategory
 import com.expent.app.core.withBudgets
+import com.expent.app.data.local.dao.DebtWithPaid
 import com.expent.app.data.local.dao.TransactionWithCategory
 import com.expent.app.data.local.entity.CategoryEntity
 import com.expent.app.data.local.entity.TransactionType
 import com.expent.app.data.repository.CategoryRepository
+import com.expent.app.data.repository.DebtRepository
 import com.expent.app.data.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -29,16 +33,19 @@ data class HomeUiState(
     val incomeCents: Long = 0,
     val expenseCents: Long = 0,
     val spendingByCategory: List<CategorySpending> = emptyList(),
+    val debtPosition: DebtPosition = DebtPosition(),
     val monthLabel: String = "",
     val isCurrentMonth: Boolean = true
 ) {
     val balanceCents: Long get() = incomeCents - expenseCents
+    val netWorthCents: Long get() = balanceCents + debtPosition.netCents
 }
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     transactionRepository: TransactionRepository,
-    categoryRepository: CategoryRepository
+    categoryRepository: CategoryRepository,
+    debtRepository: DebtRepository
 ) : ViewModel() {
 
     private val monthFormatter = DateTimeFormatter.ofPattern("MMM yyyy")
@@ -57,9 +64,11 @@ class HomeViewModel @Inject constructor(
 
     private val categories: Flow<List<CategoryEntity>> = categoryRepository.observeAll()
 
+    private val debts: Flow<List<DebtWithPaid>> = debtRepository.observeAll()
+
     val uiState: StateFlow<HomeUiState> = combine(
-        monthTransactions, selectedMonth, categories
-    ) { transactions, month, categories ->
+        monthTransactions, selectedMonth, categories, debts
+    ) { transactions, month, categories, debts ->
         val budgets = categories.associate { it.id to it.budgetCents }
         HomeUiState(
             monthTransactions = transactions,
@@ -70,6 +79,7 @@ class HomeViewModel @Inject constructor(
                 .filter { it.transaction.type == TransactionType.EXPENSE }
                 .sumOf { it.transaction.amountCents },
             spendingByCategory = transactions.spendingByCategory().withBudgets(budgets),
+            debtPosition = debts.debtPosition(),
             monthLabel = month.format(monthFormatter),
             isCurrentMonth = month == currentMonth
         )
