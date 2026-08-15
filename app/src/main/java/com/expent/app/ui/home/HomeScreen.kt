@@ -14,7 +14,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,9 +35,13 @@ import com.expent.app.core.util.MoneyUtil
 import com.expent.app.ui.components.CategoryAvatar
 import com.expent.app.ui.components.EmptyState
 import com.expent.app.ui.components.TransactionRow
+import com.expent.app.ui.theme.LocalCurrencySymbol
 
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(
+    onOpenSettings: () -> Unit,
+    viewModel: HomeViewModel = hiltViewModel()
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     LazyColumn(
@@ -43,11 +50,23 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            Text(
-                text = stringResource(R.string.home_this_month),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.home_this_month),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = onOpenSettings) {
+                    Icon(
+                        imageVector = Icons.Filled.Settings,
+                        contentDescription = stringResource(R.string.settings)
+                    )
+                }
+            }
         }
 
         item {
@@ -101,7 +120,7 @@ private fun BalanceCard(state: HomeUiState) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = MoneyUtil.format(state.balanceCents),
+                text = MoneyUtil.format(state.balanceCents, symbol = LocalCurrencySymbol.current),
                 style = MaterialTheme.typography.displaySmall,
                 color = if (state.balanceCents >= 0) {
                     MaterialTheme.colorScheme.primary
@@ -113,12 +132,12 @@ private fun BalanceCard(state: HomeUiState) {
             Row(modifier = Modifier.fillMaxWidth()) {
                 StatBlock(
                     label = stringResource(R.string.home_income),
-                    value = MoneyUtil.format(state.incomeCents),
+                    value = MoneyUtil.format(state.incomeCents, symbol = LocalCurrencySymbol.current),
                     modifier = Modifier.weight(1f)
                 )
                 StatBlock(
                     label = stringResource(R.string.home_expenses),
-                    value = MoneyUtil.format(state.expenseCents),
+                    value = MoneyUtil.format(state.expenseCents, symbol = LocalCurrencySymbol.current),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -150,7 +169,7 @@ private fun SpendingBreakdownCard(spending: List<CategorySpending>) {
                         modifier = Modifier.weight(1f)
                     )
                     Text(
-                        text = MoneyUtil.format(item.amountCents),
+                        text = MoneyUtil.format(item.amountCents, symbol = LocalCurrencySymbol.current),
                         style = MaterialTheme.typography.titleMedium
                     )
                 }

@@ -14,9 +14,13 @@ object MoneyUtil {
 
     private const val PESO_SYMBOL = "₱"
 
-    fun format(cents: Long, locale: Locale = Locale.getDefault()): String {
+    fun format(
+        cents: Long,
+        locale: Locale = Locale.getDefault(),
+        symbol: String = PESO_SYMBOL
+    ): String {
         val sign = if (cents < 0) "-" else ""
-        return sign + PESO_SYMBOL + String.format(locale, "%,.2f", abs(cents) / 100.0)
+        return sign + symbol + String.format(locale, "%,.2f", abs(cents) / 100.0)
     }
 
     /** Formats cents as an amount-input string (no grouping, no symbol), e.g. 123_456 -> "1234.56". */

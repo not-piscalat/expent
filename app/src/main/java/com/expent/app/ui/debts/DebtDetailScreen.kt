@@ -46,6 +46,7 @@ import com.expent.app.core.util.MoneyUtil
 import com.expent.app.data.local.entity.DebtPaymentEntity
 import com.expent.app.ui.components.DebtSummaryCard
 import com.expent.app.ui.components.EmptyState
+import com.expent.app.ui.theme.LocalCurrencySymbol
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -185,7 +186,9 @@ fun DebtDetailScreen(
 @Composable
 private fun PaymentRow(payment: DebtPaymentEntity, onDelete: () -> Unit) {
     ListItem(
-        headlineContent = { Text(MoneyUtil.format(payment.amountCents)) },
+        headlineContent = {
+            Text(MoneyUtil.format(payment.amountCents, symbol = LocalCurrencySymbol.current))
+        },
         supportingContent = {
             Text(listOfNotNull(DateUtil.format(payment.timestamp), payment.note).joinToString(" · "))
         },

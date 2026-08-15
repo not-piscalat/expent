@@ -19,6 +19,7 @@ import com.expent.app.R
 import com.expent.app.core.util.MoneyUtil
 import com.expent.app.data.local.dao.DebtWithPaid
 import com.expent.app.data.local.entity.DebtType
+import com.expent.app.ui.theme.LocalCurrencySymbol
 
 /** Inner content of a debt card: type, person, totals, and progress toward settlement. */
 @Composable
@@ -58,7 +59,8 @@ fun DebtSummaryCard(item: DebtWithPaid, modifier: Modifier = Modifier) {
             text = if (settled) {
                 stringResource(R.string.debt_settled)
             } else {
-                stringResource(R.string.debt_remaining) + ": " + MoneyUtil.format(remaining)
+                stringResource(R.string.debt_remaining) + ": " +
+                    MoneyUtil.format(remaining, symbol = LocalCurrencySymbol.current)
             },
             style = MaterialTheme.typography.titleMedium,
             color = if (settled) {
@@ -68,8 +70,10 @@ fun DebtSummaryCard(item: DebtWithPaid, modifier: Modifier = Modifier) {
             }
         )
         Text(
-            text = stringResource(R.string.debt_total) + ": " + MoneyUtil.format(debt.amountCents) +
-                " · " + stringResource(R.string.debt_paid) + ": " + MoneyUtil.format(item.totalPaidCents),
+            text = stringResource(R.string.debt_total) + ": " +
+                MoneyUtil.format(debt.amountCents, symbol = LocalCurrencySymbol.current) +
+                " · " + stringResource(R.string.debt_paid) + ": " +
+                MoneyUtil.format(item.totalPaidCents, symbol = LocalCurrencySymbol.current),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

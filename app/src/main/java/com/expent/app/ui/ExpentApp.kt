@@ -2,6 +2,7 @@ package com.expent.app.ui
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Home
@@ -13,8 +14,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -29,14 +32,19 @@ import com.expent.app.ui.debts.AddDebtScreen
 import com.expent.app.ui.debts.DebtDetailScreen
 import com.expent.app.ui.debts.DebtsScreen
 import com.expent.app.ui.home.HomeScreen
+import com.expent.app.ui.settings.SettingsScreen
+import com.expent.app.ui.settings.SettingsViewModel
+import com.expent.app.ui.theme.LocalCurrencySymbol
 import com.expent.app.ui.transactions.AddTransactionScreen
 import com.expent.app.ui.transactions.TransactionsScreen
+import kotlinx.coroutines.flow.map
 
 private const val ADD_TRANSACTION_ROUTE = "add_transaction?transactionId={transactionId}"
 private const val ADD_DEBT_ROUTE = "add_debt?debtId={debtId}"
 private const val DEBT_DETAIL_ROUTE = "debt_detail/{debtId}"
 private const val CATEGORIES_ROUTE = "categories"
 private const val ADD_CATEGORY_ROUTE = "add_category?categoryId={categoryId}"
+private const val SETTINGS_ROUTE = "settings"
 
 enum class ExpentDestination(
     val route: String,
@@ -49,11 +57,15 @@ enum class ExpentDestination(
 }
 
 @Composable
-fun ExpentApp() {
+fun ExpentApp(viewModel: SettingsViewModel = hiltViewModel()) {
+    val currencySymbol by viewModel.currency
+        .map { it.symbol }
+        .collectAsStateWithLifecycle(initialValue = "₱")
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
+    CompositionLocalProvider(LocalCurrencySymbol provides currencySymbol) {
     Scaffold(
         bottomBar = {
             NavigationBar {
@@ -86,7 +98,9 @@ fun ExpentApp() {
             startDestination = ExpentDestination.HOME.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(ExpentDestination.HOME.route) { HomeScreen() }
+            composable(ExpentDestination.HOME.route) {
+                HomeScreen(onOpenSettings = { navController.navigate(SETTINGS_ROUTE) })
+            }
             composable(ExpentDestination.TRANSACTIONS.route) {
                 TransactionsScreen(
                     onAddTransaction = { navController.navigate("add_transaction") },
@@ -143,6 +157,10 @@ fun ExpentApp() {
                     onDeleted = { navController.popBackStack() }
                 )
             }
+            composable(SETTINGS_ROUTE) {
+                SettingsScreen(onBack = { navController.popBackStack() })
+            }
         }
+    }
     }
 }

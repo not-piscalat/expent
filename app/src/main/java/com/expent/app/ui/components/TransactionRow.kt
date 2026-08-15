@@ -21,6 +21,7 @@ import com.expent.app.core.util.DateUtil
 import com.expent.app.core.util.MoneyUtil
 import com.expent.app.data.local.dao.TransactionWithCategory
 import com.expent.app.data.local.entity.TransactionType
+import com.expent.app.ui.theme.LocalCurrencySymbol
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -43,7 +44,8 @@ fun TransactionRow(
     }
 
     val isExpense = transaction.type == TransactionType.EXPENSE
-    val amountText = (if (isExpense) "-" else "+") + MoneyUtil.format(transaction.amountCents)
+    val amountText = (if (isExpense) "-" else "+") +
+        MoneyUtil.format(transaction.amountCents, symbol = LocalCurrencySymbol.current)
 
     ListItem(
         headlineContent = { Text(title) },
