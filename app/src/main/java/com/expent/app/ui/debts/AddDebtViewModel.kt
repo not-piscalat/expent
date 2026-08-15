@@ -3,6 +3,7 @@ package com.expent.app.ui.debts
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.expent.app.core.FormValidation
 import com.expent.app.core.util.MoneyUtil
 import com.expent.app.data.local.entity.DebtEntity
 import com.expent.app.data.local.entity.DebtType
@@ -105,5 +106,5 @@ class AddDebtViewModel @Inject constructor(
     }
 
     private fun canSave(state: AddDebtUiState): Boolean =
-        state.title.isNotBlank() && MoneyUtil.parse(state.amountInput)?.let { it > 0 } == true
+        FormValidation.canSaveDebt(state.title, state.amountInput)
 }

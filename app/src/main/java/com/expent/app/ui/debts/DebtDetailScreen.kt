@@ -26,10 +26,14 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.expent.app.R
+import com.expent.app.core.FormValidation
 import com.expent.app.core.util.DateUtil
 import com.expent.app.core.util.MoneyUtil
 import com.expent.app.data.local.entity.DebtPaymentEntity
@@ -61,8 +66,40 @@ fun DebtDetailScreen(
     val payments by viewModel.payments.collectAsStateWithLifecycle()
     var showRecordPayment by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var deleteWithUndo by remember { mutableStateOf(false) }
+    var paymentToDelete by remember { mutableStateOf<DebtPaymentEntity?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val deletedDebtMessage = stringResource(R.string.deleted_debt)
+    val deletedPaymentMessage = stringResource(R.string.deleted_payment)
+    val undoLabel = stringResource(R.string.undo)
+
+    LaunchedEffect(deleteWithUndo) {
+        if (!deleteWithUndo) return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = deletedDebtMessage,
+            actionLabel = undoLabel
+        )
+        deleteWithUndo = false
+        if (result != SnackbarResult.ActionPerformed) {
+            viewModel.deleteDebt()
+            onDeleted()
+        }
+    }
+
+    LaunchedEffect(paymentToDelete) {
+        val payment = paymentToDelete ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = deletedPaymentMessage,
+            actionLabel = undoLabel
+        )
+        paymentToDelete = null
+        if (result != SnackbarResult.ActionPerformed) {
+            viewModel.deletePayment(payment.id)
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(debt?.debt?.title ?: stringResource(R.string.debt_detail_title)) },
@@ -142,7 +179,7 @@ fun DebtDetailScreen(
                     items(payments, key = { it.id }) { payment ->
                         PaymentRow(
                             payment = payment,
-                            onDelete = { viewModel.deletePayment(payment.id) }
+                            onDelete = { paymentToDelete = payment }
                         )
                     }
                 }
@@ -168,8 +205,7 @@ fun DebtDetailScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteConfirm = false
-                    viewModel.deleteDebt()
-                    onDeleted()
+                    deleteWithUndo = true
                 }) {
                     Text(stringResource(R.string.delete))
                 }
@@ -218,7 +254,7 @@ private fun RecordPaymentDialog(
 ) {
     var amountInput by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
-    val canConfirm = MoneyUtil.parse(amountInput)?.let { it > 0 } == true
+    val canConfirm = FormValidation.isValidAmount(amountInput)
 
     AlertDialog(
         onDismissRequest = onDismiss,

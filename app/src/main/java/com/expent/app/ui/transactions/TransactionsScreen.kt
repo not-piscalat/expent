@@ -20,9 +20,13 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,8 +50,25 @@ fun TransactionsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var pendingDelete by remember { mutableStateOf<TransactionEntity?>(null) }
+    var deleteWithUndo by remember { mutableStateOf<TransactionEntity?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val deletedMessage = stringResource(R.string.deleted_transaction)
+    val undoLabel = stringResource(R.string.undo)
+
+    LaunchedEffect(deleteWithUndo) {
+        val entity = deleteWithUndo ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = deletedMessage,
+            actionLabel = undoLabel
+        )
+        if (result != SnackbarResult.ActionPerformed) {
+            viewModel.delete(entity)
+        }
+        deleteWithUndo = null
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddTransaction) {
                 Icon(
@@ -133,7 +154,7 @@ fun TransactionsScreen(
             text = { Text(stringResource(R.string.delete_transaction_body)) },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.delete(transaction)
+                    deleteWithUndo = transaction
                     pendingDelete = null
                 }) {
                     Text(stringResource(R.string.delete))

@@ -15,6 +15,9 @@
     <string name="home_recent_activity">Recent activity</string>
     <string name="home_spending_by_category">Spending by category</string>
     <string name="home_empty_title">No transactions yet</string>
+    <string name="home_empty_past_month">No transactions in this month.</string>
+    <string name="previous_month">Previous month</string>
+    <string name="next_month">Next month</string>
     <string name="home_empty_body">Add your first expense or income log to see your monthly overview here.</string>
 
     <!-- Transactions -->
@@ -32,6 +35,11 @@
     <string name="add_transaction">Add transaction</string>
     <string name="edit_transaction">Edit transaction</string>
     <string name="delete_transaction_title">Delete this transaction?</string>
+    <string name="undo">Undo</string>
+    <string name="deleted_transaction">Transaction deleted</string>
+    <string name="deleted_debt">Debt deleted</string>
+    <string name="deleted_payment">Payment deleted</string>
+    <string name="deleted_category">Category deleted</string>
     <string name="delete_transaction_body">This removes the transaction from your records. This action cannot be undone.</string>
 
     <!-- Debts -->

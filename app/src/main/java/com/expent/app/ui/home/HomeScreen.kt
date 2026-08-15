@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
@@ -27,10 +29,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.expent.app.R
+import com.expent.app.core.CategorySpending
 import com.expent.app.core.util.MoneyUtil
 import com.expent.app.ui.components.CategoryAvatar
 import com.expent.app.ui.components.EmptyState
@@ -54,12 +58,32 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                IconButton(onClick = viewModel::previousMonth) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                        contentDescription = stringResource(R.string.previous_month)
+                    )
+                }
                 Text(
-                    text = stringResource(R.string.home_this_month),
+                    text = if (state.isCurrentMonth) {
+                        stringResource(R.string.home_this_month)
+                    } else {
+                        state.monthLabel
+                    },
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f)
                 )
+                IconButton(
+                    onClick = viewModel::nextMonth,
+                    enabled = !state.isCurrentMonth
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = stringResource(R.string.next_month)
+                    )
+                }
                 IconButton(onClick = onOpenSettings) {
                     Icon(
                         imageVector = Icons.Filled.Settings,
@@ -84,7 +108,9 @@ fun HomeScreen(
                 EmptyState(
                     icon = Icons.Filled.ReceiptLong,
                     title = stringResource(R.string.home_empty_title),
-                    body = stringResource(R.string.home_empty_body),
+                    body = stringResource(
+                        if (state.isCurrentMonth) R.string.home_empty_body else R.string.home_empty_past_month
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 32.dp)

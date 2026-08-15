@@ -3,6 +3,7 @@ package com.expent.app.ui.categories
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.expent.app.core.FormValidation
 import com.expent.app.data.local.entity.CategoryEntity
 import com.expent.app.data.local.entity.TransactionType
 import com.expent.app.data.repository.CategoryRepository
@@ -92,7 +93,7 @@ class AddCategoryViewModel @Inject constructor(
     private fun update(transform: (AddCategoryUiState) -> AddCategoryUiState) {
         _uiState.update { current ->
             val next = transform(current)
-            next.copy(canSave = next.name.isNotBlank())
+            next.copy(canSave = FormValidation.canSaveCategory(next.name))
         }
     }
 }

@@ -3,6 +3,7 @@ package com.expent.app.ui.transactions
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.expent.app.core.FormValidation
 import com.expent.app.core.util.MoneyUtil
 import com.expent.app.data.local.entity.CategoryEntity
 import com.expent.app.data.local.entity.TransactionEntity
@@ -78,7 +79,7 @@ class AddTransactionViewModel @Inject constructor(
             dateMillis = date,
             note = n,
             isEditing = editing,
-            canSave = MoneyUtil.parse(amount)?.let { it > 0 } == true
+            canSave = FormValidation.canSaveTransaction(amount)
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AddTransactionUiState())
 

@@ -23,10 +23,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,10 +58,27 @@ fun CategoriesScreen(
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     var selectedType by remember { mutableStateOf(TransactionType.EXPENSE) }
     var pendingDelete by remember { mutableStateOf<CategoryEntity?>(null) }
+    var deleteWithUndo by remember { mutableStateOf<CategoryEntity?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val deletedMessage = stringResource(R.string.deleted_category)
+    val undoLabel = stringResource(R.string.undo)
+
+    LaunchedEffect(deleteWithUndo) {
+        val category = deleteWithUndo ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = deletedMessage,
+            actionLabel = undoLabel
+        )
+        if (result != SnackbarResult.ActionPerformed) {
+            viewModel.delete(category)
+        }
+        deleteWithUndo = null
+    }
 
     val visible = categories.filter { it.type == selectedType }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.categories)) },
@@ -150,7 +171,7 @@ fun CategoriesScreen(
             text = { Text(stringResource(R.string.delete_category_body)) },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.delete(category)
+                    deleteWithUndo = category
                     pendingDelete = null
                 }) {
                     Text(stringResource(R.string.delete))
