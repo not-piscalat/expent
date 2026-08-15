@@ -27,6 +27,14 @@
     <string name="no_matching_title">No matching transactions</string>
     <string name="settings">Settings</string>
     <string name="currency_label">Currency</string>
+    <string name="backup">Backup</string>
+    <string name="export_backup">Export backup</string>
+    <string name="import_backup">Import backup</string>
+    <string name="import_action">Import</string>
+    <string name="import_backup_title">Import backup?</string>
+    <string name="import_backup_body">This replaces all current transactions, categories, and debts with the contents of the backup. This action cannot be undone.</string>
+    <string name="backup_restored">Backup restored</string>
+    <string name="import_failed">Import failed. The file is not a valid backup.</string>
     <string name="currency_php">Philippine Peso (₱)</string>
     <string name="currency_usd">US Dollar ($)</string>
     <string name="currency_none">No symbol</string>

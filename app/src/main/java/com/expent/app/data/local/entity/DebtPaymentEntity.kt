@@ -4,8 +4,10 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 /** A payment that reduces the remaining balance of a [DebtEntity]. */
+@Serializable
 @Entity(
     tableName = "debt_payments",
     foreignKeys = [

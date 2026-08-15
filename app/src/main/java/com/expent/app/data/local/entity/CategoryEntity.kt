@@ -3,11 +3,13 @@ package com.expent.app.data.local.entity
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import kotlinx.serialization.Serializable
 
 /**
  * A transaction category. Categories are typed (expense or income) and carry a
  * stable [iconName] key (mapped to a Compose icon in the UI layer) and an ARGB color.
  */
+@Serializable
 @Entity(
     tableName = "categories",
     indices = [Index(value = ["name", "type"], unique = true)]

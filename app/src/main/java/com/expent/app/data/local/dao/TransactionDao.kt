@@ -56,4 +56,13 @@ interface TransactionDao {
         startInclusive: Long,
         endExclusive: Long
     ): Flow<List<TransactionWithCategory>>
+
+    @Query("SELECT * FROM transactions")
+    suspend fun getAll(): List<TransactionEntity>
+
+    @Insert
+    suspend fun insertAll(transactions: List<TransactionEntity>)
+
+    @Query("DELETE FROM transactions")
+    suspend fun clearAll()
 }

@@ -55,4 +55,13 @@ interface DebtDao {
 
     @Query("DELETE FROM debts WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    @Query("SELECT * FROM debts")
+    suspend fun getAll(): List<DebtEntity>
+
+    @Insert
+    suspend fun insertAll(debts: List<DebtEntity>)
+
+    @Query("DELETE FROM debts")
+    suspend fun clearAll()
 }
