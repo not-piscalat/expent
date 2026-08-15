@@ -115,6 +115,8 @@
     <string name="payments">Payments</string>
     <string name="no_payments_yet">No payments yet</string>
     <string name="no_payments_body">Payments you record appear here and reduce the remaining balance.</string>
+    <!-- Temporary step-3 dev hook; removed when the real share flow lands. -->
+    <string name="dev_share_debt">Sync test: share this debt</string>
 
     <!-- Add transaction -->
     <string name="add_transaction_title">Add transaction</string>

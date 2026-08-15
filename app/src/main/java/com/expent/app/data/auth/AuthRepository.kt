@@ -24,7 +24,9 @@ data class AuthUser(
 @Singleton
 class AuthRepository @Inject constructor() {
 
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    // Lazy: AuthRepository is now constructed at app start (via the sync layer),
+    // before FirebaseApp.initializeApp runs in Application.onCreate.
+    private val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
 
     /** Emits the current user, then every change (sign-in, sign-out, token refresh). */
     val authState: Flow<AuthUser?> = callbackFlow {

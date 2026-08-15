@@ -159,6 +159,12 @@ fun DebtDetailScreen(
                     }
                 }
                 item {
+                    // TEMPORARY step-3 dev hook; removed when the real share flow lands.
+                    TextButton(onClick = viewModel::devShareDebt) {
+                        Text(stringResource(R.string.dev_share_debt))
+                    }
+                }
+                item {
                     Text(
                         text = stringResource(R.string.payments),
                         style = MaterialTheme.typography.titleMedium

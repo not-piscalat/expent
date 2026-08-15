@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import com.expent.app.data.local.entity.DebtPaymentEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -16,6 +17,9 @@ interface DebtPaymentDao {
     @Delete
     suspend fun delete(payment: DebtPaymentEntity)
 
+    @Update
+    suspend fun update(payment: DebtPaymentEntity)
+
     @Query("SELECT * FROM debt_payments WHERE debtId = :debtId ORDER BY timestamp DESC")
     fun observeForDebt(debtId: Long): Flow<List<DebtPaymentEntity>>
 
@@ -27,6 +31,18 @@ interface DebtPaymentDao {
 
     @Insert
     suspend fun insertAll(payments: List<DebtPaymentEntity>)
+
+    @Query("SELECT * FROM debt_payments WHERE id = :id")
+    suspend fun getById(id: Long): DebtPaymentEntity?
+
+    @Query("SELECT * FROM debt_payments WHERE remoteId = :remoteId")
+    suspend fun getByRemoteId(remoteId: String): DebtPaymentEntity?
+
+    @Query("SELECT * FROM debt_payments WHERE remoteId IS NOT NULL")
+    fun observeSynced(): Flow<List<DebtPaymentEntity>>
+
+    @Query("DELETE FROM debt_payments WHERE remoteId = :remoteId")
+    suspend fun deleteByRemoteId(remoteId: String)
 
     @Query("DELETE FROM debt_payments")
     suspend fun clearAll()

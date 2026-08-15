@@ -62,6 +62,18 @@ interface DebtDao {
     @Insert
     suspend fun insertAll(debts: List<DebtEntity>)
 
+    @Query("SELECT * FROM debts WHERE id = :id")
+    suspend fun getById(id: Long): DebtEntity?
+
+    @Query("SELECT * FROM debts WHERE remoteId = :remoteId")
+    suspend fun getByRemoteId(remoteId: String): DebtEntity?
+
+    @Query("SELECT * FROM debts WHERE remoteId IS NOT NULL")
+    fun observeSynced(): Flow<List<DebtEntity>>
+
+    @Query("DELETE FROM debts WHERE remoteId = :remoteId")
+    suspend fun deleteByRemoteId(remoteId: String)
+
     @Query("DELETE FROM debts")
     suspend fun clearAll()
 }
