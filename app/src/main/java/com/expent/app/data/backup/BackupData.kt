@@ -8,6 +8,14 @@ import com.expent.app.data.local.entity.TransactionEntity
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
+/** App settings that travel with a backup so a restore on a new phone feels whole. */
+@Serializable
+data class BackupSettings(
+    val currencyCode: String? = null,
+    val themeCode: String? = null,
+    val startingBalanceCents: Long? = null
+)
+
 /** A full snapshot of the database, ready to serialize to JSON. */
 @Serializable
 data class BackupData(
@@ -17,7 +25,9 @@ data class BackupData(
     val transactions: List<TransactionEntity> = emptyList(),
     val debts: List<DebtEntity> = emptyList(),
     val payments: List<DebtPaymentEntity> = emptyList(),
-    val recurringTemplates: List<RecurringTemplateEntity> = emptyList()
+    val recurringTemplates: List<RecurringTemplateEntity> = emptyList(),
+    /** Null for backups made by older versions: those leave settings untouched. */
+    val settings: BackupSettings? = null
 )
 
 object BackupCodec {

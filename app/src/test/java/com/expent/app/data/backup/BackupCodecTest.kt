@@ -71,6 +71,11 @@ class BackupCodecTest {
                 nextDueEpochDay = 20_000,
                 isActive = true
             )
+        ),
+        settings = BackupSettings(
+            currencyCode = "USD",
+            themeCode = "DARK",
+            startingBalanceCents = 50_000
         )
     )
 
@@ -88,6 +93,8 @@ class BackupCodecTest {
         assertEquals(emptyList<CategoryEntity>(), decoded.categories)
         assertEquals(emptyList<TransactionEntity>(), decoded.transactions)
         assertEquals(emptyList<RecurringTemplateEntity>(), decoded.recurringTemplates)
+        // Older backups carry no settings and must decode with them null.
+        assertEquals(null, decoded.settings)
     }
 
     @Test
