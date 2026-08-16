@@ -20,6 +20,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -59,7 +60,8 @@ fun TransactionsScreen(
         val entity = deleteWithUndo ?: return@LaunchedEffect
         val result = snackbarHostState.showSnackbar(
             message = deletedMessage,
-            actionLabel = undoLabel
+            actionLabel = undoLabel,
+            duration = SnackbarDuration.Long
         )
         if (result != SnackbarResult.ActionPerformed) {
             viewModel.delete(entity)

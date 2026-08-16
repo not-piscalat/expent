@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -67,7 +68,8 @@ fun CategoriesScreen(
         val category = deleteWithUndo ?: return@LaunchedEffect
         val result = snackbarHostState.showSnackbar(
             message = deletedMessage,
-            actionLabel = undoLabel
+            actionLabel = undoLabel,
+            duration = SnackbarDuration.Long
         )
         if (result != SnackbarResult.ActionPerformed) {
             viewModel.delete(category)

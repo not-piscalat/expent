@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -94,7 +95,8 @@ fun DebtDetailScreen(
         if (!deleteWithUndo) return@LaunchedEffect
         val result = snackbarHostState.showSnackbar(
             message = deletedDebtMessage,
-            actionLabel = undoLabel
+            actionLabel = undoLabel,
+            duration = SnackbarDuration.Long
         )
         deleteWithUndo = false
         if (result != SnackbarResult.ActionPerformed) {
@@ -107,7 +109,8 @@ fun DebtDetailScreen(
         val payment = paymentToDelete ?: return@LaunchedEffect
         val result = snackbarHostState.showSnackbar(
             message = deletedPaymentMessage,
-            actionLabel = undoLabel
+            actionLabel = undoLabel,
+            duration = SnackbarDuration.Long
         )
         paymentToDelete = null
         if (result != SnackbarResult.ActionPerformed) {

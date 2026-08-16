@@ -35,7 +35,11 @@ service cloud.firestore {
 
     match /debt_payments/{paymentId} {
       allow read: if request.auth != null && request.auth.uid in resource.data.participants;
-      allow create, update, delete: if request.auth != null && request.auth.uid in request.resource.data.participants;
+      allow create, update: if request.auth != null && request.auth.uid in request.resource.data.participants;
+      // Deletes must check the EXISTING doc: request.resource (the would-be new
+      // document) is undefined for a delete, so any delete-only rule keyed on it
+      // silently denies every payment removal.
+      allow delete: if request.auth != null && request.auth.uid in resource.data.participants;
     }
   }
 }

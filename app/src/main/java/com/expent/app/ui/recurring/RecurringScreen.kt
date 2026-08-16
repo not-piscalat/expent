@@ -22,6 +22,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -76,7 +77,8 @@ fun RecurringScreen(
         val template = deleteWithUndo ?: return@LaunchedEffect
         val result = snackbarHostState.showSnackbar(
             message = deletedMessage,
-            actionLabel = undoLabel
+            actionLabel = undoLabel,
+            duration = SnackbarDuration.Long
         )
         if (result != SnackbarResult.ActionPerformed) {
             viewModel.delete(template)
