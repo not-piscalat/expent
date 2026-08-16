@@ -23,7 +23,7 @@ import com.expent.app.data.local.entity.TransactionEntity
         DebtPaymentEntity::class,
         RecurringTemplateEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class ExpentDatabase : RoomDatabase() {
@@ -107,5 +107,19 @@ val MIGRATION_4_5 = object : Migration(4, 5) {
 val MIGRATION_5_6 = object : Migration(5, 6) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE debt_payments ADD COLUMN deletedAt INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+/**
+ * v6 -> v7: persisted push guards. `lastPushedUpdatedAt` records the row state
+ * that was last written to Firestore, so the sync engine only re-pushes rows
+ * that actually changed instead of every synced row on every launch (a big
+ * write-quota saver). Existing rows default to 0 — dirty — and get pushed
+ * once on the next sync, then settle.
+ */
+val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE debts ADD COLUMN lastPushedUpdatedAt INTEGER NOT NULL DEFAULT 0")
+        db.execSQL("ALTER TABLE debt_payments ADD COLUMN lastPushedUpdatedAt INTEGER NOT NULL DEFAULT 0")
     }
 }

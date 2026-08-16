@@ -54,5 +54,12 @@ data class DebtEntity(
     /** Server timestamp from Firestore for last-writer-wins conflict resolution. */
     @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0,
     /** Tombstone timestamp; 0 means the debt is alive. */
-    @ColumnInfo(defaultValue = "0") val deletedAt: Long = 0
+    @ColumnInfo(defaultValue = "0") val deletedAt: Long = 0,
+    /**
+     * The `updatedAt` we last pushed to Firestore. Rows where this differs
+     * from `updatedAt` are dirty and get re-pushed; persisting the guard on
+     * the row means a sync restart never re-pushes every row (which burned
+     * write quota on every launch). 0 marks a row that has never been pushed.
+     */
+    @ColumnInfo(defaultValue = "0") val lastPushedUpdatedAt: Long = 0
 )

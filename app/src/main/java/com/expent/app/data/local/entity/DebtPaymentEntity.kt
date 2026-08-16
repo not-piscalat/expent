@@ -34,5 +34,7 @@ data class DebtPaymentEntity(
     /** Server timestamp from Firestore for last-writer-wins conflict resolution. */
     @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0,
     /** Tombstone timestamp; 0 means the payment is alive. */
-    @ColumnInfo(defaultValue = "0") val deletedAt: Long = 0
+    @ColumnInfo(defaultValue = "0") val deletedAt: Long = 0,
+    /** The `updatedAt` we last pushed to Firestore; differs on dirty rows. */
+    @ColumnInfo(defaultValue = "0") val lastPushedUpdatedAt: Long = 0
 )

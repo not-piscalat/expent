@@ -181,6 +181,30 @@ class DebtSyncerTest {
     }
 
     @Test
+    fun `does not re-push unchanged rows after a sync restart but still pushes changes`() = runBlocking {
+        debtDao.insert(localDebt(remoteId = "doc-1", updatedAt = 100))
+        syncer.start()
+        uidFlow.value = "uid-1"
+        await { fakeStore.upsertedDebts.any { it.updatedAt == 100L } }
+        val countAfterFirstPush = fakeStore.upsertedDebts.size
+
+        // Simulate an app restart: same Room rows, a fresh syncer and scope.
+        scope.coroutineContext[Job]?.cancel()
+        Thread.sleep(200)
+        scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        syncer = DebtSyncer(uidFlow, debtDao, paymentDao, fakeStore, scope)
+        syncer.start()
+        Thread.sleep(400)
+        // The unchanged row is NOT re-pushed (the persisted guard held).
+        assertEquals(countAfterFirstPush, fakeStore.upsertedDebts.size)
+
+        // A genuine change still pushes after the restart.
+        val current = debtDao.getByRemoteId("doc-1")!!
+        debtDao.update(current.copy(amountCents = 777, updatedAt = 300))
+        await { fakeStore.upsertedDebts.any { it.amountCents == 777L } }
+    }
+
+    @Test
     fun `does not echo pulled changes back to the store`() = runBlocking {
         syncer.start()
         uidFlow.value = "uid-1"

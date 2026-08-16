@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.launch
-import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,10 +27,14 @@ import javax.inject.Singleton
  *  - **Push** (Room -> Firestore): watches local changes to shared debts and
  *    writes them with a Firestore server timestamp.
  *
- * Echo-loop prevention: every remote snapshot records the doc's `updatedAt` in
- * [lastSeenRemoteUpdatedAt]. A Room change is only pushed when its `updatedAt`
- * differs from that last-seen value — so a pull-applied write never echoes back.
- * Local edits bump `updatedAt` in the repository, which is what triggers a push.
+ * Echo-loop prevention lives on the row itself: `lastPushedUpdatedAt` records
+ * the `updatedAt` state that was last written to Firestore. A row is pushed
+ * only when `updatedAt != lastPushedUpdatedAt` — so a pull-applied write never
+ * echoes back, and (because the guard is persisted) a sync restart never
+ * re-pushes every row, which used to burn the Firestore write quota on every
+ * launch. Local edits bump `updatedAt` in the repository, which is what arms
+ * a push; a failed push leaves the row dirty (`lastPushedUpdatedAt` untouched)
+ * so the next Room emission or app launch retries it.
  *
  * Deletes are soft: the repository tombstones a shared row (sets `deletedAt`
  * and bumps `updatedAt`) instead of removing it, so the push loop carries the
@@ -49,17 +52,16 @@ class DebtSyncer @Inject constructor(
     private val scope: CoroutineScope
 ) {
 
-    private val lastSeenRemoteUpdatedAt = ConcurrentHashMap<String, Long>()
     private var job: Job? = null
 
     /** Starts listening for auth changes; safe to call once at app start. */
     fun start() {
         if (job?.isActive == true) return
         job = scope.launch {
-            // distinctUntilChanged: authState re-emits on token refresh etc., and
-            // every emission would cancel and restart the whole sync — wiping
-            // lastSeenRemoteUpdatedAt and re-pushing every shared row, which can
-            // resurrect a just-deleted doc. Only re-sync when the uid changes.
+            // distinctUntilChanged: authState re-emits on token refresh etc.,
+            // and every emission would cancel and restart the whole sync. The
+            // per-row push guard survives those restarts, so nothing is
+            // re-pushed unless it actually changed.
             userUidFlow.distinctUntilChanged().collectLatest { uid ->
                 Log.d(TAG, "sync uid change: $uid")
                 if (uid == null) return@collectLatest
@@ -70,7 +72,6 @@ class DebtSyncer @Inject constructor(
 
     private suspend fun runSync(uid: String) = coroutineScope {
         Log.d(TAG, "runSync started for $uid")
-        lastSeenRemoteUpdatedAt.clear()
         launch { pushDebts() }
         launch { pushPayments() }
         pullAll(uid)
@@ -93,11 +94,11 @@ class DebtSyncer @Inject constructor(
             .collect { (remoteDebts, remotePayments) ->
                 val debtIds = remoteDebts.map { it.docId }.toSet()
 
-                // Debts that vanished from the snapshot were deleted remotely.
+                // Debts that vanished from the snapshot were hard-deleted
+                // outside the app (console cleanup); mirror that locally.
                 (previousDebtIds - debtIds).forEach { gone ->
                     Log.d(TAG, "pull: debt vanished from snapshot -> local delete: $gone")
                     debtDao.deleteByRemoteId(gone)
-                    lastSeenRemoteUpdatedAt.remove(gone)
                 }
                 previousDebtIds = debtIds
                 Log.d(TAG, "pull snapshot: debts=${remoteDebts.map { it.docId }}")
@@ -108,7 +109,6 @@ class DebtSyncer @Inject constructor(
                 // Payments that vanished from the snapshot were deleted remotely.
                 (previousPaymentIds - paymentIds).forEach { gone ->
                     paymentDao.deleteByRemoteId(gone)
-                    lastSeenRemoteUpdatedAt.remove(gone)
                 }
                 previousPaymentIds = paymentIds
                 remotePayments.forEach { applyPayment(it) }
@@ -116,9 +116,6 @@ class DebtSyncer @Inject constructor(
     }
 
     private suspend fun applyDebt(remote: RemoteDebt) {
-        // Record what the remote side thinks BEFORE deciding, so a newer local
-        // edit is recognized as needing a push.
-        lastSeenRemoteUpdatedAt[remote.docId] = remote.updatedAt
         val local = debtDao.getByRemoteId(remote.docId)
         if (local != null && local.updatedAt > remote.updatedAt) return // local edit wins
         if (local != null && local.deletedAt != 0L && remote.deletedAt == 0L) {
@@ -144,7 +141,6 @@ class DebtSyncer @Inject constructor(
     }
 
     private suspend fun applyPayment(remote: RemotePayment) {
-        lastSeenRemoteUpdatedAt[remote.docId] = remote.updatedAt
         val parentDebtId = debtDao.getByRemoteId(remote.debtDocId)?.id ?: return // parent not pulled yet
         val local = paymentDao.getByRemoteId(remote.docId)
         if (local != null && local.updatedAt > remote.updatedAt) return // local edit wins
@@ -172,14 +168,14 @@ class DebtSyncer @Inject constructor(
         debtDao.observeSynced().collect { debts ->
             debts.forEach { debt ->
                 val remoteId = debt.remoteId ?: return@forEach
-                if (lastSeenRemoteUpdatedAt[remoteId] != debt.updatedAt) {
+                if (debt.updatedAt != debt.lastPushedUpdatedAt) {
                     try {
                         remoteStore.upsertDebt(debt)
-                        lastSeenRemoteUpdatedAt[remoteId] = debt.updatedAt
+                        debtDao.update(debt.copy(lastPushedUpdatedAt = debt.updatedAt))
                     } catch (e: Exception) {
                         Log.w(TAG, "pushDebt failed $remoteId: ${e.message}")
-                        // Transient failure: leave lastSeen untouched so the
-                        // next Room emission retries.
+                        // Row stays dirty: the next Room emission or app launch
+                        // retries the push.
                     }
                 }
             }
@@ -190,7 +186,7 @@ class DebtSyncer @Inject constructor(
         paymentDao.observeSynced().collect { payments ->
             payments.forEach { payment ->
                 val remoteId = payment.remoteId ?: return@forEach
-                if (lastSeenRemoteUpdatedAt[remoteId] != payment.updatedAt) {
+                if (payment.updatedAt != payment.lastPushedUpdatedAt) {
                     val parent = debtDao.getById(payment.debtId) ?: return@forEach
                     val debtRemoteId = parent.remoteId ?: return@forEach
                     try {
@@ -199,10 +195,10 @@ class DebtSyncer @Inject constructor(
                             debtRemoteId,
                             participants = listOfNotNull(parent.creatorId, parent.otherParticipantId)
                         )
-                        lastSeenRemoteUpdatedAt[remoteId] = payment.updatedAt
+                        paymentDao.update(payment.copy(lastPushedUpdatedAt = payment.updatedAt))
                     } catch (e: Exception) {
                         Log.w(TAG, "pushPayment failed $remoteId: ${e.message}")
-                        // Retried on the next Room emission.
+                        // Retried on the next Room emission or app launch.
                     }
                 }
             }
@@ -230,7 +226,9 @@ private fun RemoteDebt.toEntity(localId: Long): DebtEntity = DebtEntity(
     shareCode = shareCode,
     status = status,
     updatedAt = updatedAt,
-    deletedAt = deletedAt
+    deletedAt = deletedAt,
+    // The remote already holds this state; mark it pushed so it never echoes.
+    lastPushedUpdatedAt = updatedAt
 )
 
 private fun RemotePayment.toEntity(localId: Long, localDebtId: Long): DebtPaymentEntity = DebtPaymentEntity(
@@ -242,5 +240,6 @@ private fun RemotePayment.toEntity(localId: Long, localDebtId: Long): DebtPaymen
     remoteId = docId,
     payerId = payerId,
     updatedAt = updatedAt,
-    deletedAt = deletedAt
+    deletedAt = deletedAt,
+    lastPushedUpdatedAt = updatedAt
 )

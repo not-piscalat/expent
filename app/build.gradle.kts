@@ -79,6 +79,14 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            // Robolectric (Room + SQLite native) needs more than Gradle's
+            // default 512MB worker heap; without it the test JVM dies mid-run
+            // and the executor reports a bogus socket failure. One worker at a
+            // time keeps the machine from thrashing during local builds.
+            all {
+                it.maxHeapSize = "1g"
+                it.maxParallelForks = 1
+            }
         }
     }
 }
