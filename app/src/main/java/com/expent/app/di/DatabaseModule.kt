@@ -10,6 +10,7 @@ import com.expent.app.data.local.MIGRATION_4_5
 import com.expent.app.data.local.MIGRATION_5_6
 import com.expent.app.data.local.MIGRATION_6_7
 import com.expent.app.data.local.MIGRATION_7_8
+import com.expent.app.data.local.MIGRATION_8_9
 import com.expent.app.data.local.dao.CategoryDao
 import com.expent.app.data.local.dao.DebtDao
 import com.expent.app.data.local.dao.DebtPaymentDao
@@ -30,7 +31,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): ExpentDatabase =
         Room.databaseBuilder(context, ExpentDatabase::class.java, "expent.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
             .build()
 
     @Provides

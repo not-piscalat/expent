@@ -23,7 +23,7 @@ import com.expent.app.data.local.entity.TransactionEntity
         DebtPaymentEntity::class,
         RecurringTemplateEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class ExpentDatabase : RoomDatabase() {
@@ -133,5 +133,18 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
 val MIGRATION_7_8 = object : Migration(7, 8) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE transactions ADD COLUMN ownerId TEXT")
+    }
+}
+
+/**
+ * v8 -> v9: ownership for categories (and their budgets) and recurring
+ * templates, so account switching on a shared device also hides the other
+ * account's setup. Nullable — pre-existing rows (defaults, legacy categories
+ * and templates) stay visible to everyone.
+ */
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE categories ADD COLUMN ownerId TEXT")
+        db.execSQL("ALTER TABLE recurring_templates ADD COLUMN ownerId TEXT")
     }
 }

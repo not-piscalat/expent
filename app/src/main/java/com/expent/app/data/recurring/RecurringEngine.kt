@@ -1,6 +1,7 @@
 package com.expent.app.data.recurring
 
 import com.expent.app.core.RecurringSchedule
+import com.expent.app.core.visibleTo
 import com.expent.app.data.auth.AuthRepository
 import com.expent.app.data.local.dao.RecurringTemplateDao
 import com.expent.app.data.local.dao.TransactionDao
@@ -28,10 +29,13 @@ class RecurringEngine @Inject constructor(
     suspend fun applyDue(today: LocalDate = LocalDate.now()) {
         val zone = ZoneId.systemDefault()
         // Posted transactions belong to whoever is signed in; unowned when
-        // signed out (legacy fallback keeps them visible).
+        // signed out (legacy fallback keeps them visible). Templates owned by
+        // another account are skipped so switching accounts on a shared device
+        // never materializes the other person's bills.
         val ownerId = authRepository.authState.first()?.uid
         for (template in templateDao.getAll()) {
             if (!template.isActive) continue
+            if (!template.visibleTo(ownerId)) continue
             var due = LocalDate.ofEpochDay(template.nextDueEpochDay)
             var generated = false
             while (!due.isAfter(today)) {

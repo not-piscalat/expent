@@ -40,5 +40,11 @@ data class RecurringTemplateEntity(
     val dayOfWeek: Int,
     /** Epoch day of the next occurrence to materialize; advanced as transactions are generated. */
     val nextDueEpochDay: Long,
-    val isActive: Boolean = true
+    val isActive: Boolean = true,
+    /**
+     * The uid of the account that owns this template, so a different account on
+     * the same device neither sees it nor has its occurrences materialized.
+     * Null on pre-ownership rows (kept visible to everyone).
+     */
+    val ownerId: String? = null
 )

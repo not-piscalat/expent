@@ -12,5 +12,4 @@ import com.expent.app.data.local.entity.TransactionEntity
  *    it predates ownership tracking (ownerId null) — hiding those would
  *    delete the original owner's view of their own spending.
  */
-fun TransactionEntity.visibleTo(myUid: String?): Boolean =
-    myUid == null || ownerId == null || ownerId == myUid
+fun TransactionEntity.visibleTo(myUid: String?): Boolean = visibleToOwner(ownerId, myUid)

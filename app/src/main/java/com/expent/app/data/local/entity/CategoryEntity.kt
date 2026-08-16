@@ -23,5 +23,12 @@ data class CategoryEntity(
     val isDefault: Boolean = false,
     val sortOrder: Int = 0,
     /** Optional monthly spending limit in cents; null means no budget. */
-    val budgetCents: Long? = null
+    val budgetCents: Long? = null,
+    /**
+     * The uid of the account that created this category (and its budget), so a
+     * different account on the same device never sees it. Null on rows created
+     * before ownership was tracked (defaults, legacy categories) — they stay
+     * visible to everyone.
+     */
+    val ownerId: String? = null
 )
