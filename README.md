@@ -2,13 +2,39 @@
 
 A private, local-first expense tracker for Android. Log expenses and income, set monthly budgets, track money you lent or borrowed, and let the app forecast and flag what matters.
 
-**No account. No ads. No cloud. All your data stays on your phone** — export a JSON backup whenever you want to move it.
+**No ads. No tracking. Local-first** — your data stays on your phone and you can export a JSON backup whenever you want to move it. Optionally sign in with Google to share debts and keep them in sync between phones.
 
 ## 📲 Install
 
 Grab the latest APK from the **[releases page](https://github.com/not-piscalat/expent/releases)**, open it on your phone, and allow installs from that source. Requires Android 8.0+.
 
 Prefer to build it yourself? See [Getting started](#getting-started).
+
+## 📝 Changelog
+
+### v0.3.1 — 2026-08-16
+
+**Per-account data on shared devices** — each Google sign-in on the same phone now keeps its own view:
+
+- Debts, transactions, categories (and their budgets), and recurring templates are visible only to the account that created them
+- Currency, theme, and starting balance are per-account, with the device default as a graceful fallback
+- Switching accounts never shows or materializes the other person's data
+
+**Sync reliability**
+
+- Deletes are now tombstone-based soft deletes that propagate reliably instead of racing the push
+- Fixed a race where a stale remote snapshot could resurrect a deleted debt
+- The push loop only re-writes rows that actually changed, cutting Firestore write volume
+
+**Also fixed**: undo-snackbar deletes now always fire; sync restarts can no longer resurrect deleted debts.
+
+### v0.3.0 — 2026-08-16
+
+- **Mutual-debt sync** — optional Google sign-in, share codes, and two-way sync of shared debts and their payments between accounts (Firebase Auth + Firestore)
+
+### v0.2.0 — 2026-08-15
+
+- Crash reporting (Firebase Crashlytics), settings included in JSON backups, release signing, and the first installable signed APK
 
 ## ✨ Features
 
@@ -24,7 +50,7 @@ Prefer to build it yourself? See [Getting started](#getting-started).
 
 ## 🔒 Privacy
 
-Expent is deliberately **offline-first**: no accounts, no analytics, no network permission. Everything lives in a local Room database on the device. When configured with Firebase, only crash reports are sent.
+Expent is **local-first**: everything lives in a local Room database on your device and works fully offline. There are no ads and no analytics. Two optional Firebase integrations exist: Crashlytics (crash reports only, active when `google-services.json` is added to the build) and shared-debt sync (active only after you sign in with Google).
 
 ## 🛠 Tech stack
 
@@ -108,6 +134,6 @@ keytool -genkeypair -keystore app/keystore/expent-release.jks -alias expent \
 
 ## Roadmap
 
-- [ ] Mutual-debt sync between accounts (Firebase auth + shared debt records)
+- [x] Mutual-debt sync between accounts (Firebase auth + shared debt records)
 - [ ] Tagalog localization
 - [ ] Home-screen widget
