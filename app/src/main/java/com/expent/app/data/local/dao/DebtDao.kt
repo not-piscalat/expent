@@ -68,6 +68,9 @@ interface DebtDao {
     @Query("SELECT * FROM debts WHERE remoteId = :remoteId")
     suspend fun getByRemoteId(remoteId: String): DebtEntity?
 
+    @Query("SELECT shareCode FROM debts WHERE shareCode IS NOT NULL")
+    suspend fun getAllShareCodes(): List<String>
+
     @Query("SELECT * FROM debts WHERE remoteId IS NOT NULL")
     fun observeSynced(): Flow<List<DebtEntity>>
 

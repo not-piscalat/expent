@@ -24,6 +24,9 @@ class DebtRepository @Inject constructor(
 
     suspend fun addDebt(debt: DebtEntity): Long = debtDao.insert(debt)
 
+    /** Share codes already in use locally, so a new code never collides with them. */
+    suspend fun getAllShareCodes(): Set<String> = debtDao.getAllShareCodes().toSet()
+
     /**
      * Updates a debt. Shared debts get a fresh `updatedAt` so the sync engine
      * recognizes the change and pushes it (last-writer-wins).

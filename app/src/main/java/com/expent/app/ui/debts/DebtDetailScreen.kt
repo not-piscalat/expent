@@ -1,9 +1,14 @@
 package com.expent.app.ui.debts
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,9 +18,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -37,11 +45,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.expent.app.R
@@ -52,6 +65,7 @@ import com.expent.app.data.local.entity.DebtPaymentEntity
 import com.expent.app.ui.components.DebtSummaryCard
 import com.expent.app.ui.components.EmptyState
 import com.expent.app.ui.theme.LocalCurrencySymbol
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,11 +78,14 @@ fun DebtDetailScreen(
 ) {
     val debt by viewModel.debt.collectAsStateWithLifecycle()
     val payments by viewModel.payments.collectAsStateWithLifecycle()
+    val shareState by viewModel.shareState.collectAsStateWithLifecycle()
     var showRecordPayment by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var deleteWithUndo by remember { mutableStateOf(false) }
     var paymentToDelete by remember { mutableStateOf<DebtPaymentEntity?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val deletedDebtMessage = stringResource(R.string.deleted_debt)
     val deletedPaymentMessage = stringResource(R.string.deleted_payment)
     val undoLabel = stringResource(R.string.undo)
@@ -98,6 +115,14 @@ fun DebtDetailScreen(
         }
     }
 
+    LaunchedEffect(shareState) {
+        val state = shareState
+        if (state is ShareState.Error) {
+            snackbarHostState.showSnackbar(state.message)
+            viewModel.resetShare()
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -112,6 +137,14 @@ fun DebtDetailScreen(
                     }
                 },
                 actions = {
+                    if (debt != null) {
+                        IconButton(onClick = viewModel::shareDebt) {
+                            Icon(
+                                imageVector = Icons.Filled.Share,
+                                contentDescription = stringResource(R.string.share_debt)
+                            )
+                        }
+                    }
                     IconButton(onClick = onEdit) {
                         Icon(
                             imageVector = Icons.Filled.Edit,
@@ -156,12 +189,6 @@ fun DebtDetailScreen(
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         DebtSummaryCard(current)
-                    }
-                }
-                item {
-                    // TEMPORARY step-3 dev hook; removed when the real share flow lands.
-                    TextButton(onClick = viewModel::devShareDebt) {
-                        Text(stringResource(R.string.dev_share_debt))
                     }
                 }
                 item {
@@ -223,6 +250,84 @@ fun DebtDetailScreen(
             }
         )
     }
+
+    (shareState as? ShareState.Ready)?.let { ready ->
+        ShareDebtDialog(
+            code = ready.code,
+            onCopy = {
+                val clipboard =
+                    context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText("Expent share code", ready.code))
+                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.code_copied)) }
+            },
+            onShareVia = {
+                val text = context.getString(R.string.share_code_message, ready.title, ready.code)
+                val send = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, text)
+                }
+                context.startActivity(Intent.createChooser(send, null))
+            },
+            onDismiss = viewModel::resetShare
+        )
+    }
+}
+
+@Composable
+private fun ShareDebtDialog(
+    code: String,
+    onCopy: () -> Unit,
+    onShareVia: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.share_debt)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(
+                    text = stringResource(R.string.share_dialog_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = code,
+                        style = MaterialTheme.typography.displaySmall.copy(letterSpacing = 8.sp),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onShareVia) {
+                    Icon(
+                        imageVector = Icons.Filled.Share,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                    Text(stringResource(R.string.share_via))
+                }
+                OutlinedButton(onClick = onCopy) {
+                    Icon(
+                        imageVector = Icons.Filled.ContentCopy,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                    Text(stringResource(R.string.copy_code))
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.done))
+            }
+        }
+    )
 }
 
 @Composable

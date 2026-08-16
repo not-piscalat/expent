@@ -19,9 +19,9 @@ import org.robolectric.annotation.Config
 
 /**
  * Guards the hand-written migrations: a database created at v1 (with real data)
- * must open at v4 with Room's schema validation passing and the data intact.
- * Any drift between the migration SQL and Room's expected schema fails here
- * instead of crashing every existing user's app on upgrade.
+ * must open at the current version with Room's schema validation passing and
+ * the data intact. Any drift between the migration SQL and Room's expected
+ * schema fails here instead of crashing every existing user's app on upgrade.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -91,7 +91,7 @@ class MigrationTest {
     }
 
     @Test
-    fun `migrating from v1 to v4 keeps data and validates the schema`() {
+    fun `migrating from v1 to v5 keeps data and validates the schema`() {
         context.deleteDatabase(dbName)
 
         // Create a real v1 database and seed it like a first-launch install.
@@ -128,7 +128,7 @@ class MigrationTest {
         // Opening at the current version runs the migrations; Room validates the
         // resulting schema and throws if the SQL drifted from its expectations.
         val db = Room.databaseBuilder(context, ExpentDatabase::class.java, dbName)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .build()
 
         // A write proves the migrated database is fully writable.
@@ -169,6 +169,7 @@ class MigrationTest {
             assertEquals(null, migratedDebt.remoteId)
             assertEquals(null, migratedDebt.creatorId)
             assertEquals(null, migratedDebt.otherParticipantId)
+            assertEquals(null, migratedDebt.shareCode)
             val migratedPayment = db.debtPaymentDao().getAll().single()
             assertEquals(null, migratedPayment.remoteId)
             assertEquals(null, migratedPayment.payerId)
@@ -187,6 +188,7 @@ class MigrationTest {
                     remoteId = "doc-abc",
                     creatorId = "uid-1",
                     otherParticipantId = "uid-2",
+                    shareCode = "K7M2QX",
                     status = DebtStatus.OPEN,
                     updatedAt = 1_700_000_000_000,
                     deletedAt = 0
@@ -196,6 +198,7 @@ class MigrationTest {
             assertEquals("doc-abc", shared.remoteId)
             assertEquals("uid-1", shared.creatorId)
             assertEquals("uid-2", shared.otherParticipantId)
+            assertEquals("K7M2QX", shared.shareCode)
             db.debtPaymentDao().insert(
                 DebtPaymentEntity(
                     debtId = sharedId,

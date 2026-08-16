@@ -44,6 +44,12 @@ data class DebtEntity(
     val creatorId: String? = null,
     /** The uid of the other participant in a shared debt. */
     val otherParticipantId: String? = null,
+    /**
+     * The short code the creator shares with a partner so they can link the
+     * debt (e.g. "K7M2QX"). Stored locally so the creator can re-show it and
+     * the sync engine can write it to the Firestore doc atomically.
+     */
+    val shareCode: String? = null,
     @ColumnInfo(defaultValue = "'OPEN'") val status: DebtStatus = DebtStatus.OPEN,
     /** Server timestamp from Firestore for last-writer-wins conflict resolution. */
     @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0,

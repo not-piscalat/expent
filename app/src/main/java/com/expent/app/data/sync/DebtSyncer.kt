@@ -206,6 +206,7 @@ private fun RemoteDebt.toEntity(localId: Long): DebtEntity = DebtEntity(
     remoteId = docId,
     creatorId = creatorId,
     otherParticipantId = (participants - creatorId).firstOrNull(),
+    shareCode = shareCode,
     status = status,
     updatedAt = updatedAt,
     deletedAt = deletedAt

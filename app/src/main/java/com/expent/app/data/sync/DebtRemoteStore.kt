@@ -30,7 +30,8 @@ data class RemoteDebt(
     val status: DebtStatus,
     val createdAt: Long,
     val updatedAt: Long,
-    val deletedAt: Long
+    val deletedAt: Long,
+    val shareCode: String? = null
 )
 
 /** A payment of a shared debt as it lives in Firestore. */
@@ -60,6 +61,20 @@ interface DebtRemoteStore {
      * would not prove the rule holds and the listen is denied).
      */
     fun observeMyPayments(uid: String): Flow<List<RemotePayment>>
+
+    /**
+     * Finds a shared debt by its share code — the join flow's invitation
+     * lookup. Returns null when no debt carries that code.
+     */
+    suspend fun findByShareCode(code: String): RemoteDebt?
+
+    /**
+     * Links [uid] to an existing shared debt as a participant. The creator's
+     * copy of the debt is not changed here; once the doc's participants array
+     * contains [uid], the caller's own array-contains listener starts matching
+     * it and the syncer pulls it into Room automatically.
+     */
+    suspend fun joinDebt(docId: String, uid: String)
 
     /** Creates or overwrites the Firestore doc for a shared debt (server timestamp). */
     suspend fun upsertDebt(debt: DebtEntity)
@@ -121,6 +136,24 @@ class FirestoreDebtStore @Inject constructor() : DebtRemoteStore {
             .set(payment.toRemoteMap(debtRemoteId, participants)).await()
     }
 
+    override suspend fun findByShareCode(code: String): RemoteDebt? {
+        val snapshot = db.collection(COLLECTION_DEBTS)
+            .whereEqualTo("shareCode", code)
+            .limit(1)
+            .get()
+            .await()
+        return snapshot.documents.firstOrNull()?.toRemoteDebt()
+    }
+
+    override suspend fun joinDebt(docId: String, uid: String) {
+        db.collection(COLLECTION_DEBTS).document(docId).update(
+            mapOf(
+                "participants" to FieldValue.arrayUnion(uid),
+                "otherParticipantId" to uid
+            )
+        ).await()
+    }
+
     override suspend fun deleteDebt(remoteId: String) {
         db.collection(COLLECTION_DEBTS).document(remoteId).delete().await()
     }
@@ -159,7 +192,8 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toRemoteDebt(): Remot
         status = status,
         createdAt = getLong("createdAt") ?: 0,
         updatedAt = (getTimestamp("updatedAt")?.toDate()?.time) ?: (getLong("updatedAt") ?: 0),
-        deletedAt = getLong("deletedAt") ?: 0
+        deletedAt = getLong("deletedAt") ?: 0,
+        shareCode = getString("shareCode")
     )
 }
 
@@ -190,7 +224,8 @@ internal fun DebtEntity.toRemoteMap(): Map<String, Any?> = mapOf(
     "status" to status.name,
     "createdAt" to createdAt,
     "updatedAt" to FieldValue.serverTimestamp(),
-    "deletedAt" to deletedAt
+    "deletedAt" to deletedAt,
+    "shareCode" to shareCode
 )
 
 /** Remote form of a local shared payment, ready to write with a fresh server timestamp. */

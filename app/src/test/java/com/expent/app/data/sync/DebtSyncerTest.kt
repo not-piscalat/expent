@@ -43,12 +43,28 @@ class FakeDebtRemoteStore : DebtRemoteStore {
     val upsertedPayments = mutableListOf<UpsertedPayment>()
     val deletedDebtIds = mutableListOf<String>()
     val deletedPaymentIds = mutableListOf<String>()
+    val joined = mutableListOf<Pair<String, String>>()
     var debtEmissions = 0
 
+    /** Filters like Firestore's array-contains query so joins are observable. */
     override fun observeMyDebts(uid: String): Flow<List<RemoteDebt>> =
-        debts.onEach { debtEmissions++ }
+        debts.map { list -> list.filter { uid in it.participants } }.onEach { debtEmissions++ }
 
     override fun observeMyPayments(uid: String): Flow<List<RemotePayment>> = payments
+
+    override suspend fun findByShareCode(code: String): RemoteDebt? =
+        debts.value.firstOrNull { it.shareCode == code }
+
+    override suspend fun joinDebt(docId: String, uid: String) {
+        joined += docId to uid
+        debts.value = debts.value.map { debt ->
+            if (debt.docId == docId) {
+                debt.copy(participants = (debt.participants + uid).distinct())
+            } else {
+                debt
+            }
+        }
+    }
 
     override suspend fun upsertDebt(debt: DebtEntity) {
         upsertedDebts += debt
@@ -119,6 +135,30 @@ class DebtSyncerTest {
         val payment = paymentDao.getByRemoteId("pay-1")!!
         assertEquals("uid-2", payment.payerId)
         assertEquals(debt.id, payment.debtId)
+    }
+
+    @Test
+    fun `joining a shared debt pulls it into the joiner's list`() = runBlocking {
+        syncer.start()
+        uidFlow.value = "uid-2" // the partner, who is NOT yet a participant
+        fakeStore.debts.value = listOf(remoteDebt("doc-1", "uid-1", shareCode = "K7M2QX"))
+
+        fakeStore.joinDebt("doc-1", "uid-2")
+        await { debtDao.getByRemoteId("doc-1") != null }
+        val debt = debtDao.getByRemoteId("doc-1")!!
+        assertEquals("uid-1", debt.creatorId)
+        assertEquals("uid-2", debt.otherParticipantId)
+        assertEquals("K7M2QX", debt.shareCode)
+    }
+
+    @Test
+    fun `pull preserves the share code on a shared debt`() = runBlocking {
+        syncer.start()
+        uidFlow.value = "uid-1"
+
+        fakeStore.debts.value = listOf(remoteDebt("doc-1", "uid-1", shareCode = "K7M2QX"))
+        await { debtDao.getByRemoteId("doc-1") != null }
+        assertEquals("K7M2QX", debtDao.getByRemoteId("doc-1")!!.shareCode)
     }
 
     @Test
@@ -257,7 +297,8 @@ class DebtSyncerTest {
         uid: String,
         updatedAt: Long = 100,
         title: String = "Shared debt",
-        amountCents: Long = 1_000
+        amountCents: Long = 1_000,
+        shareCode: String? = null
     ) = RemoteDebt(
         docId = docId,
         participants = listOf("uid-1", "uid-2"),
@@ -271,7 +312,8 @@ class DebtSyncerTest {
         status = DebtStatus.OPEN,
         createdAt = 1,
         updatedAt = updatedAt,
-        deletedAt = 0
+        deletedAt = 0,
+        shareCode = shareCode
     )
 
     private fun remotePayment(docId: String, debtDocId: String, updatedAt: Long = 100) = RemotePayment(

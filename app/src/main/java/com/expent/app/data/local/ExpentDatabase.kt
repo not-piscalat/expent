@@ -23,7 +23,7 @@ import com.expent.app.data.local.entity.TransactionEntity
         DebtPaymentEntity::class,
         RecurringTemplateEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class ExpentDatabase : RoomDatabase() {
@@ -84,5 +84,16 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
         db.execSQL("ALTER TABLE debt_payments ADD COLUMN remoteId TEXT")
         db.execSQL("ALTER TABLE debt_payments ADD COLUMN payerId TEXT")
         db.execSQL("ALTER TABLE debt_payments ADD COLUMN updatedAt INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+/**
+ * v4 -> v5: adds the share code that lets a partner link a debt with a short
+ * code instead of an account identifier. Nullable — existing local debts are
+ * simply not shared yet.
+ */
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE debts ADD COLUMN shareCode TEXT")
     }
 }
