@@ -18,14 +18,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ImportContacts
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -58,6 +55,8 @@ import com.expent.app.data.auth.AuthUser
 import com.expent.app.data.auth.GoogleSignIn
 import com.expent.app.ui.components.DebtSummaryCard
 import com.expent.app.ui.components.EmptyState
+import com.expent.app.ui.components.ExpentFab
+import com.expent.app.ui.components.LedgerCard
 import com.expent.app.ui.theme.LocalCurrencySymbol
 import kotlinx.coroutines.launch
 
@@ -88,12 +87,10 @@ fun DebtsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             if (authUser != null) {
-                FloatingActionButton(onClick = onAddDebt) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = stringResource(R.string.add_debt)
-                    )
-                }
+                ExpentFab(
+                    onClick = onAddDebt,
+                    contentDescription = stringResource(R.string.add_debt)
+                )
             }
         }
     ) { innerPadding ->
@@ -168,7 +165,7 @@ fun DebtsScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(debts, key = { it.debt.id }) { item ->
-                            Card(
+                            LedgerCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable { onOpenDebt(item.debt.id) }
@@ -234,7 +231,7 @@ private fun JoinDebtDialog(
                                 state.preview.amountCents,
                                 symbol = LocalCurrencySymbol.current
                             ),
-                            style = MaterialTheme.typography.titleLarge
+                            style = MaterialTheme.typography.displaySmall
                         )
                     }
                     is JoinState.NotFound -> {
@@ -330,7 +327,7 @@ private fun SignedInHeader(
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(modifier = modifier.fillMaxWidth()) {
+    LedgerCard(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

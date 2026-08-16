@@ -2,6 +2,7 @@ package com.expent.app.ui.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -22,6 +23,7 @@ import com.expent.app.core.util.MoneyUtil
 import com.expent.app.data.local.dao.TransactionWithCategory
 import com.expent.app.data.local.entity.TransactionType
 import com.expent.app.ui.theme.LocalCurrencySymbol
+import com.expent.app.ui.theme.MoneyMedium
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -59,7 +61,7 @@ fun TransactionRow(
         trailingContent = {
             Text(
                 text = amountText,
-                style = MaterialTheme.typography.titleMedium,
+                style = MoneyMedium,
                 color = if (isExpense) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
             )
         },
@@ -69,10 +71,13 @@ fun TransactionRow(
 
 @Composable
 fun CategoryAvatar(iconName: String?, colorArgb: Long?, modifier: Modifier = Modifier) {
+    // A coin: the category color minted into a disc with a lighter rim.
+    val color = Color(colorArgb ?: 0xFF9E9E9E)
     Box(
         modifier = modifier
             .size(40.dp)
-            .background(Color(colorArgb ?: 0xFF9E9E9E), CircleShape),
+            .background(color, CircleShape)
+            .border(2.dp, Color.White.copy(alpha = 0.55f), CircleShape),
         contentAlignment = Alignment.Center
     ) {
         Icon(

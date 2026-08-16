@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Expent's launcher backdrop, from the Figma logo: a deep violet diagonal
+     gradient with a soft radial glow and a hairline top highlight. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Base gradient -->
+    <path android:pathData="M0,0 h108 v108 h-108 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="0"
+                android:startY="0"
+                android:endX="108"
+                android:endY="108"
+                android:type="linear">
+                <item android:offset="0" android:color="#FF1C0940" />
+                <item android:offset="0.55" android:color="#FF2A1060" />
+                <item android:offset="1" android:color="#FF160830" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Radial violet glow -->
+    <path android:pathData="M54,54 m-54,0 a54,54 0 1,0 108,0 a54,54 0 1,0 -108,0 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="67"
+                android:centerY="56"
+                android:gradientRadius="54">
+                <item android:offset="0" android:color="#596D28D9" />
+                <item android:offset="1" android:color="#006D28D9" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Top edge highlight -->
+    <path
+        android:pathData="M0,0 h108 v1 h-108 z"
+        android:fillColor="#C4B5FD"
+        android:fillAlpha="0.18" />
+</vector>

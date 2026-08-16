@@ -22,6 +22,9 @@
     <string name="starting_balance_title">Starting balance</string>
     <string name="starting_balance_not_set">Not set</string>
     <string name="home_spending_by_category">Spending by category</string>
+    <string name="home_spent_total">Spent</string>
+    <string name="home_share_pct">%1$d%% of month</string>
+    <string name="home_budget_used">%1$d%% of budget</string>
     <string name="home_empty_title">No transactions yet</string>
     <string name="home_empty_past_month">No transactions in this month.</string>
     <string name="previous_month">Previous month</string>

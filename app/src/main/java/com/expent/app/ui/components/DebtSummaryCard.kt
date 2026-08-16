@@ -20,6 +20,8 @@ import com.expent.app.core.util.MoneyUtil
 import com.expent.app.data.local.dao.DebtWithPaid
 import com.expent.app.data.local.entity.DebtType
 import com.expent.app.ui.theme.LocalCurrencySymbol
+import com.expent.app.ui.theme.MoneyMedium
+import com.expent.app.ui.theme.MoneySmall
 
 /** Inner content of a debt card: type, person, totals, and progress toward settlement. */
 @Composable
@@ -62,7 +64,7 @@ fun DebtSummaryCard(item: DebtWithPaid, modifier: Modifier = Modifier) {
                 stringResource(R.string.debt_remaining) + ": " +
                     MoneyUtil.format(remaining, symbol = LocalCurrencySymbol.current)
             },
-            style = MaterialTheme.typography.titleMedium,
+            style = MoneyMedium,
             color = if (settled) {
                 MaterialTheme.colorScheme.primary
             } else {
@@ -74,7 +76,7 @@ fun DebtSummaryCard(item: DebtWithPaid, modifier: Modifier = Modifier) {
                 MoneyUtil.format(debt.amountCents, symbol = LocalCurrencySymbol.current) +
                 " · " + stringResource(R.string.debt_paid) + ": " +
                 MoneyUtil.format(item.totalPaidCents, symbol = LocalCurrencySymbol.current),
-            style = MaterialTheme.typography.bodySmall,
+            style = MoneySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         val progress = if (debt.amountCents > 0) {

@@ -1,5 +1,6 @@
 package com.expent.app.ui.transactions
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,12 +12,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -41,8 +40,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.expent.app.R
 import com.expent.app.data.local.entity.TransactionEntity
 import com.expent.app.ui.components.EmptyState
+import com.expent.app.ui.components.ExpentFab
 import com.expent.app.ui.components.TransactionRow
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TransactionsScreen(
     onAddTransaction: () -> Unit,
@@ -72,12 +73,10 @@ fun TransactionsScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddTransaction) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = stringResource(R.string.add_transaction)
-                )
-            }
+            ExpentFab(
+                onClick = onAddTransaction,
+                contentDescription = stringResource(R.string.add_transaction)
+            )
         }
     ) { innerPadding ->
         Column(
@@ -141,7 +140,8 @@ fun TransactionsScreen(
                         TransactionRow(
                             item = item,
                             onClick = { onEditTransaction(item.transaction.id) },
-                            onLongClick = { pendingDelete = item.transaction }
+                            onLongClick = { pendingDelete = item.transaction },
+                            modifier = Modifier.animateItem()
                         )
                     }
                 }

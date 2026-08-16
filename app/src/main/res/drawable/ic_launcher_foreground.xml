@@ -1,14 +1,115 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Placeholder brand mark: a white coin with an emerald "E". -->
+<!-- Expent's mark, from the Figma logo: three ascending violet bars — the
+     ledger's growth — with a dashed trendline across their tops and a glowing
+     dot on the tallest. The 64-unit logo content is scaled by 0.85 around the
+     canvas center (54,54) so the chart breathes inside the launcher's safe
+     zone. Dashes are drawn as short segments: VectorDrawable has no dash
+     arrays. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <!-- Chart grid (dash 1.7 · gap 2.55) -->
     <path
+        android:pathData="M31.05,35.3 h1.7 M35.3,35.3 h1.7 M39.55,35.3 h1.7 M43.8,35.3 h1.7 M48.05,35.3 h1.7 M52.3,35.3 h1.7 M56.55,35.3 h1.7 M60.8,35.3 h1.7 M65.05,35.3 h1.7 M69.3,35.3 h1.7 M73.55,35.3 h1.7 M31.05,47.2 h1.7 M35.3,47.2 h1.7 M39.55,47.2 h1.7 M43.8,47.2 h1.7 M48.05,47.2 h1.7 M52.3,47.2 h1.7 M56.55,47.2 h1.7 M60.8,47.2 h1.7 M65.05,47.2 h1.7 M69.3,47.2 h1.7 M73.55,47.2 h1.7 M31.05,59.95 h1.7 M35.3,59.95 h1.7 M39.55,59.95 h1.7 M43.8,59.95 h1.7 M48.05,59.95 h1.7 M52.3,59.95 h1.7 M56.55,59.95 h1.7 M60.8,59.95 h1.7 M65.05,59.95 h1.7 M69.3,59.95 h1.7 M73.55,59.95 h1.7"
+        android:strokeColor="#8B5CF6"
+        android:strokeAlpha="0.12"
+        android:strokeWidth="0.85" />
+    <!-- Baseline -->
+    <path
+        android:pathData="M27.9,72.7 L76.1,72.7"
+        android:strokeColor="#6D28D9"
+        android:strokeAlpha="0.35"
+        android:strokeWidth="1.275"
+        android:strokeLineCap="round" />
+
+    <!-- Bar 1: shortest -->
+    <path android:pathData="M37.15,57.4 h3.4 a3.4,3.4 0 0 1 3.4,3.4 v8.5 a3.4,3.4 0 0 1 -3.4,3.4 h-3.4 a3.4,3.4 0 0 1 -3.4,-3.4 v-8.5 a3.4,3.4 0 0 1 3.4,-3.4 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="33.75"
+                android:startY="57.4"
+                android:endX="33.75"
+                android:endY="72.7"
+                android:type="linear">
+                <item android:offset="0" android:color="#FF7C3AED" />
+                <item android:offset="1" android:color="#FF4C1D95" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Bar 2: middle -->
+    <path android:pathData="M52.3,47.2 h3.4 a3.4,3.4 0 0 1 3.4,3.4 v18.7 a3.4,3.4 0 0 1 -3.4,3.4 h-3.4 a3.4,3.4 0 0 1 -3.4,-3.4 v-18.7 a3.4,3.4 0 0 1 3.4,-3.4 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="48.9"
+                android:startY="47.2"
+                android:endX="48.9"
+                android:endY="72.7"
+                android:type="linear">
+                <item android:offset="0" android:color="#FFA78BFA" />
+                <item android:offset="1" android:color="#FF5B21B6" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Bar 3: tallest, with a soft halo where the glow dot sits -->
+    <path android:pathData="M68.45,35.3 h3.4 a3.4,3.4 0 0 1 3.4,3.4 v30.6 a3.4,3.4 0 0 1 -3.4,3.4 h-3.4 a3.4,3.4 0 0 1 -3.4,-3.4 v-30.6 a3.4,3.4 0 0 1 3.4,-3.4 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="65.05"
+                android:startY="35.3"
+                android:endX="65.05"
+                android:endY="72.7"
+                android:type="linear">
+                <item android:offset="0" android:color="#FFDDD6FE" />
+                <item android:offset="1" android:color="#FF6D28D9" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M70.15,27.65 a7.65,7.65 0 1,0 0.001,0 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="70.15"
+                android:centerY="35.3"
+                android:gradientRadius="7.65">
+                <item android:offset="0" android:color="#73EDE9FE" />
+                <item android:offset="1" android:color="#00EDE9FE" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Highlight caps -->
+    <path
+        android:pathData="M35.725,59.1 h5.1 a1.275,1.275 0 0 1 0,2.55 h-5.1 a1.275,1.275 0 0 1 0,-2.55 z"
         android:fillColor="#FFFFFF"
-        android:pathData="M54,30 a24,24 0 1,0 0.001,0 z" />
+        android:fillAlpha="0.12" />
     <path
-        android:fillColor="#0E9F6E"
-        android:pathData="M44,43 h6 v22 h-6 z M50,43 h14 v6 h-14 z M50,51 h11 v6 h-11 z M50,59 h14 v6 h-14 z" />
+        android:pathData="M51.875,48.9 h5.1 a1.275,1.275 0 0 1 0,2.55 h-5.1 a1.275,1.275 0 0 1 0,-2.55 z"
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.12" />
+    <path
+        android:pathData="M68.025,37 h5.1 a1.275,1.275 0 0 1 0,2.55 h-5.1 a1.275,1.275 0 0 1 0,-2.55 z"
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.15" />
+
+    <!-- Trendline across the bar tops (dash 1.7 · gap 2.55, hand-drawn) -->
+    <path
+        android:pathData="M37.85,57.4 L39.29,56.49 M41.44,55.13 L42.88,54.22 M45.04,52.86 L46.47,51.95 M48.63,50.59 L50.07,49.68 M52.23,48.32 L53.66,47.41 M55.73,45.92 L57.10,44.92 M59.15,43.40 L60.52,42.40 M62.57,40.88 L63.94,39.87 M65.99,38.36 L67.36,37.35 M69.42,35.84 L70.15,35.30"
+        android:strokeColor="#C4B5FD"
+        android:strokeAlpha="0.3"
+        android:strokeWidth="1.02"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Glow dot on the tallest bar -->
+    <path
+        android:pathData="M70.15,30.625 a4.675,4.675 0 1,0 0.001,0 z"
+        android:strokeColor="#DDD6FE"
+        android:strokeAlpha="0.3"
+        android:strokeWidth="0.85" />
+    <path
+        android:pathData="M70.15,32.325 a2.975,2.975 0 1,0 0.001,0 z"
+        android:fillColor="#EDE9FE" />
 </vector>

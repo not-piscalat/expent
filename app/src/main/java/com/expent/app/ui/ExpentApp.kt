@@ -1,20 +1,49 @@
 package com.expent.app.ui
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
+import androidx.compose.material3.ripple
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -73,31 +102,55 @@ fun ExpentApp(viewModel: SettingsViewModel = hiltViewModel()) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
-    ExpentTheme(darkTheme = themeOption.resolvesToDark(isSystemInDarkTheme())) {
+    // Switching themes dissolves instead of snapping, so the whole palette
+    // fades between light and dark.
+    Crossfade(
+        targetState = themeOption.resolvesToDark(isSystemInDarkTheme()),
+        animationSpec = tween(durationMillis = 350),
+        label = "theme"
+    ) { darkTheme ->
+    ExpentTheme(darkTheme = darkTheme) {
     CompositionLocalProvider(LocalCurrencySymbol provides currencySymbol) {
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                ExpentDestination.entries.forEach { destination ->
-                    NavigationBarItem(
-                        selected = currentRoute == destination.route,
-                        onClick = {
-                            navController.navigate(destination.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+            // The coin dock: each tab is a circular slot, and the page you're
+            // on is a raised violet coin — the same token as the FAB.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
+            ) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    shadowElevation = 8.dp
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ExpentDestination.entries.forEach { destination ->
+                            NavCoin(
+                                destination = destination,
+                                selected = currentRoute == destination.route,
+                                onClick = {
+                                    navController.navigate(destination.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
                                 }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = destination.icon,
-                                contentDescription = stringResource(destination.labelRes)
                             )
-                        },
-                        label = { Text(stringResource(destination.labelRes)) }
-                    )
+                        }
+                    }
                 }
             }
         }
@@ -196,5 +249,66 @@ fun ExpentApp(viewModel: SettingsViewModel = hiltViewModel()) {
         }
     }
     }
+    }
+    }
+}
+
+@Composable
+private fun NavCoin(
+    destination: ExpentDestination,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    // The active tab is a minted coin: the gradient disc rises above the dock
+    // with a shadow, while the rest stay flat in their slots. Pressing any
+    // coin sinks it briefly before the spring returns.
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val coinScale by animateFloatAsState(
+        targetValue = when {
+            pressed -> 0.82f
+            selected -> 1.06f
+            else -> 1f
+        },
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "navCoinScale"
+    )
+    val shape = CircleShape
+    val gradient = Brush.linearGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primary,
+            MaterialTheme.colorScheme.tertiary
+        )
+    )
+    val label = stringResource(destination.labelRes)
+
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .scale(coinScale)
+            .then(
+                if (selected) {
+                    Modifier
+                        .shadow(6.dp, shape)
+                        .background(gradient, shape)
+                } else {
+                    Modifier.background(Color.Transparent)
+                }
+            )
+            .clip(shape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = ripple(),
+                onClick = onClick
+            )
+            .semantics { this.contentDescription = label },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = destination.icon,
+            contentDescription = null,
+            tint = if (selected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(22.dp)
+        )
     }
 }

@@ -4,44 +4,72 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
-// Brand: emerald green, fitting for a money app.
-val Emerald = Color(0xFF0E9F6E)
-val EmeraldDark = Color(0xFF0B7A54)
-val Mint = Color(0xFFB7F5D4)
-val Forest = Color(0xFF073B27)
+// Expent's palette: light and dark purple. Light theme is lavender-paper with a
+// deep violet primary; dark theme is plum-night with a light lavender primary.
+// The violet is deliberately bluer and brighter than Material's default purple
+// so it reads as Expent's, not the framework's.
+
+// Light theme
+val Violet = Color(0xFF6C4BD1)
+val VioletDeep = Color(0xFF3E2A7D)
+val LavenderMist = Color(0xFFE8E1FA)
+val LavenderPaper = Color(0xFFF1EEF9)
+val LavenderLine = Color(0xFFD9D2EA)
+val Amethyst = Color(0xFF8E4FA8)
+val InkViolet = Color(0xFF211D2E)
+val MutedViolet = Color(0xFF5B5769)
+
+// Dark theme
+val PlumNight = Color(0xFF161123)
+val PlumSurface = Color(0xFF1E1831)
+val PlumRaised = Color(0xFF262042)
+val Lavender = Color(0xFFC5B3F5)
+val LavenderBright = Color(0xFFE7DEFF)
+val PlumContainer = Color(0xFF44307E)
+val PlumMuted = Color(0xFFB3ADC6)
 
 internal val LightColors = lightColorScheme(
-    primary = Emerald,
+    primary = Violet,
     onPrimary = Color.White,
-    primaryContainer = Mint,
-    onPrimaryContainer = Forest,
-    secondary = Color(0xFF4E6E5D),
+    primaryContainer = LavenderMist,
+    onPrimaryContainer = VioletDeep,
+    secondary = Amethyst,
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFD0F4E0),
-    onSecondaryContainer = Color(0xFF0B2A1D),
-    tertiary = Color(0xFF00696E),
+    secondaryContainer = Color(0xFFF3E4F7),
+    onSecondaryContainer = Color(0xFF381C41),
+    tertiary = Color(0xFF7D5AA6),
     onTertiary = Color.White,
-    tertiaryContainer = Color(0xFF9CF1F7),
-    onTertiaryContainer = Color(0xFF002022),
-    background = Color(0xFFF8FAF8),
-    surface = Color(0xFFF8FAF8),
+    tertiaryContainer = Color(0xFFEBDDFF),
+    onTertiaryContainer = Color(0xFF2E1445),
+    background = LavenderPaper,
+    surface = Color(0xFFFCFBFE),
+    surfaceVariant = Color(0xFFECE8F6),
+    onSurface = InkViolet,
+    onSurfaceVariant = MutedViolet,
+    outline = LavenderLine,
+    outlineVariant = Color(0xFFE4DFF1),
     error = Color(0xFFBA1A1A)
 )
 
 internal val DarkColors = darkColorScheme(
-    primary = Color(0xFF52D9A3),
-    onPrimary = Color(0xFF003825),
-    primaryContainer = Color(0xFF00513A),
-    onPrimaryContainer = Mint,
-    secondary = Color(0xFFB4CCBB),
-    onSecondary = Color(0xFF20352B),
-    secondaryContainer = Color(0xFF364B40),
-    onSecondaryContainer = Color(0xFFD0E8D6),
-    tertiary = Color(0xFF80D4DA),
-    onTertiary = Color(0xFF00373A),
-    tertiaryContainer = Color(0xFF004F53),
-    onTertiaryContainer = Color(0xFF9CF1F7),
-    background = Color(0xFF101411),
-    surface = Color(0xFF101411),
+    primary = Lavender,
+    onPrimary = Color(0xFF2E1E5E),
+    primaryContainer = PlumContainer,
+    onPrimaryContainer = LavenderBright,
+    secondary = Color(0xFFD7A9EC),
+    onSecondary = Color(0xFF3B1B45),
+    secondaryContainer = Color(0xFF553361),
+    onSecondaryContainer = Color(0xFFF6D9FF),
+    tertiary = Color(0xFFCBB7F0),
+    onTertiary = Color(0xFF322553),
+    tertiaryContainer = Color(0xFF4A3B6E),
+    onTertiaryContainer = Color(0xFFE9DEFF),
+    background = PlumNight,
+    surface = PlumSurface,
+    surfaceVariant = Color(0xFF2B2540),
+    onSurface = Color(0xFFEDE8FB),
+    onSurfaceVariant = PlumMuted,
+    outline = Color(0xFF4A435F),
+    outlineVariant = Color(0xFF37314D),
     error = Color(0xFFFFB4AB)
 )

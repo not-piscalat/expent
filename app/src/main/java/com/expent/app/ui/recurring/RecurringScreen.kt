@@ -11,12 +11,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -49,7 +48,9 @@ import com.expent.app.core.util.MoneyUtil
 import com.expent.app.data.local.entity.RecurringTemplateEntity
 import com.expent.app.data.local.entity.TransactionType
 import com.expent.app.ui.components.EmptyState
+import com.expent.app.ui.components.ExpentFab
 import com.expent.app.ui.theme.LocalCurrencySymbol
+import com.expent.app.ui.theme.MoneyMedium
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -102,12 +103,10 @@ fun RecurringScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAddRecurring) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = stringResource(R.string.add_recurring_title)
-                )
-            }
+            ExpentFab(
+                onClick = onAddRecurring,
+                contentDescription = stringResource(R.string.add_recurring_title)
+            )
         }
     ) { innerPadding ->
         if (templates.isEmpty()) {
@@ -131,46 +130,54 @@ fun RecurringScreen(
                     .padding(innerPadding)
             ) {
                 items(templates, key = { it.id }) { template ->
-                    ListItem(
-                        headlineContent = { Text(template.title) },
-                        supportingContent = {
-                            Column {
-                                Text(
-                                    stringResource(R.string.recurring_summary) + ": " +
-                                        MoneyUtil.format(template.amountCents, symbol = LocalCurrencySymbol.current) +
-                                        if (template.type == TransactionType.INCOME) " · " + stringResource(R.string.income)
-                                        else " · " + stringResource(R.string.expense)
-                                )
-                                Text(
-                                    if (template.isActive) {
-                                        scheduleSummary(template) + " · " +
-                                            stringResource(R.string.next_due) + ": " +
-                                            LocalDate.ofEpochDay(template.nextDueEpochDay).format(dueFormatter)
-                                    } else {
-                                        scheduleSummary(template) + " · " + stringResource(R.string.paused)
-                                    }
-                                )
-                            }
-                        },
-                        trailingContent = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Switch(
-                                    checked = template.isActive,
-                                    onCheckedChange = { viewModel.setActive(template, it) }
-                                )
-                                IconButton(onClick = { pendingDelete = template }) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Delete,
-                                        contentDescription = stringResource(R.string.delete),
-                                        tint = MaterialTheme.colorScheme.outline
+                    Column {
+                        ListItem(
+                            headlineContent = { Text(template.title) },
+                            supportingContent = {
+                                Column {
+                                    Text(
+                                        text = MoneyUtil.format(template.amountCents, symbol = LocalCurrencySymbol.current) +
+                                            if (template.type == TransactionType.INCOME) " · " + stringResource(R.string.income)
+                                            else " · " + stringResource(R.string.expense),
+                                        style = MoneyMedium
+                                    )
+                                    Text(
+                                        text = if (template.isActive) {
+                                            scheduleSummary(template) + " · " +
+                                                stringResource(R.string.next_due) + ": " +
+                                                LocalDate.ofEpochDay(template.nextDueEpochDay).format(dueFormatter)
+                                        } else {
+                                            scheduleSummary(template) + " · " + stringResource(R.string.paused)
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                            }
-                        },
-                        modifier = Modifier
-                            .alpha(if (template.isActive) 1f else 0.55f)
-                            .clickable { onEditRecurring(template.id) }
-                    )
+                            },
+                            trailingContent = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Switch(
+                                        checked = template.isActive,
+                                        onCheckedChange = { viewModel.setActive(template, it) }
+                                    )
+                                    IconButton(onClick = { pendingDelete = template }) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Delete,
+                                            contentDescription = stringResource(R.string.delete),
+                                            tint = MaterialTheme.colorScheme.outline
+                                        )
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .alpha(if (template.isActive) 1f else 0.55f)
+                                .clickable { onEditRecurring(template.id) }
+                        )
+                        HorizontalDivider(
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        )
+                    }
                 }
             }
         }

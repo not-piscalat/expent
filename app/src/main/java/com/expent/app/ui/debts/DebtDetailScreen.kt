@@ -17,19 +17,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -65,7 +62,11 @@ import com.expent.app.core.util.MoneyUtil
 import com.expent.app.data.local.entity.DebtPaymentEntity
 import com.expent.app.ui.components.DebtSummaryCard
 import com.expent.app.ui.components.EmptyState
+import com.expent.app.ui.components.ExpentFab
+import com.expent.app.ui.components.LedgerCard
 import com.expent.app.ui.theme.LocalCurrencySymbol
+import com.expent.app.ui.theme.MoneyInput
+import com.expent.app.ui.theme.MoneyMedium
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -165,12 +166,10 @@ fun DebtDetailScreen(
         },
         floatingActionButton = {
             if (debt != null) {
-                FloatingActionButton(onClick = { showRecordPayment = true }) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = stringResource(R.string.record_payment)
-                    )
-                }
+                ExpentFab(
+                    onClick = { showRecordPayment = true },
+                    contentDescription = stringResource(R.string.record_payment)
+                )
             }
         }
     ) { innerPadding ->
@@ -190,7 +189,7 @@ fun DebtDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    LedgerCard(modifier = Modifier.fillMaxWidth()) {
                         DebtSummaryCard(current)
                     }
                 }
@@ -213,10 +212,16 @@ fun DebtDetailScreen(
                     }
                 } else {
                     items(payments, key = { it.id }) { payment ->
-                        PaymentRow(
-                            payment = payment,
-                            onDelete = { paymentToDelete = payment }
-                        )
+                        Column {
+                            PaymentRow(
+                                payment = payment,
+                                onDelete = { paymentToDelete = payment }
+                            )
+                            HorizontalDivider(
+                                thickness = 1.dp,
+                                color = MaterialTheme.colorScheme.outlineVariant
+                            )
+                        }
                     }
                 }
             }
@@ -293,7 +298,7 @@ private fun ShareDebtDialog(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Card(modifier = Modifier.fillMaxWidth()) {
+                LedgerCard(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = code,
                         style = MaterialTheme.typography.displaySmall.copy(letterSpacing = 8.sp),
@@ -335,30 +340,38 @@ private fun ShareDebtDialog(
 
 @Composable
 private fun PaymentRow(payment: DebtPaymentEntity, onDelete: () -> Unit) {
-    ListItem(
-        headlineContent = {
-            Text(MoneyUtil.format(payment.amountCents, symbol = LocalCurrencySymbol.current))
-        },
-        supportingContent = {
-            Text(listOfNotNull(DateUtil.format(payment.timestamp), payment.note).joinToString(" · "))
-        },
-        leadingContent = {
-            Icon(
-                imageVector = Icons.Filled.Payments,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Payments,
+            contentDescription = null,
+            modifier = Modifier.padding(end = 16.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = MoneyUtil.format(payment.amountCents, symbol = LocalCurrencySymbol.current),
+                style = MoneyMedium,
+                color = MaterialTheme.colorScheme.primary
             )
-        },
-        trailingContent = {
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Filled.Delete,
-                    contentDescription = stringResource(R.string.delete),
-                    tint = MaterialTheme.colorScheme.outline
-                )
-            }
+            Text(
+                text = listOfNotNull(DateUtil.format(payment.timestamp), payment.note).joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
-    )
+        IconButton(onClick = onDelete) {
+            Icon(
+                imageVector = Icons.Filled.Delete,
+                contentDescription = stringResource(R.string.delete),
+                tint = MaterialTheme.colorScheme.outline
+            )
+        }
+    }
 }
 
 @Composable
@@ -379,8 +392,10 @@ private fun RecordPaymentDialog(
                     value = amountInput,
                     onValueChange = { amountInput = MoneyUtil.sanitizeInput(it) },
                     label = { Text(stringResource(R.string.amount_label)) },
+                    prefix = { Text(LocalCurrencySymbol.current, style = MoneyInput) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    textStyle = MoneyInput,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(

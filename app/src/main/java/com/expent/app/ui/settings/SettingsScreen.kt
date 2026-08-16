@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -54,6 +55,8 @@ import com.expent.app.core.CurrencyOption
 import com.expent.app.core.ThemeOption
 import com.expent.app.core.util.MoneyUtil
 import com.expent.app.ui.theme.LocalCurrencySymbol
+import com.expent.app.ui.theme.MoneyInput
+import com.expent.app.ui.theme.MoneyMedium
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
@@ -181,16 +184,22 @@ fun SettingsScreen(
                     CurrencyOption.USD -> R.string.currency_usd
                     CurrencyOption.NONE -> R.string.currency_none
                 }
-                ListItem(
-                    headlineContent = { Text(stringResource(labelRes)) },
-                    trailingContent = {
-                        RadioButton(
-                            selected = currency == option,
-                            onClick = { settingsViewModel.setCurrency(option) }
-                        )
-                    },
-                    modifier = Modifier.clickable { settingsViewModel.setCurrency(option) }
-                )
+                Column {
+                    ListItem(
+                        headlineContent = { Text(stringResource(labelRes)) },
+                        trailingContent = {
+                            RadioButton(
+                                selected = currency == option,
+                                onClick = { settingsViewModel.setCurrency(option) }
+                            )
+                        },
+                        modifier = Modifier.clickable { settingsViewModel.setCurrency(option) }
+                    )
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                }
             }
 
             Text(
@@ -204,16 +213,22 @@ fun SettingsScreen(
                     ThemeOption.LIGHT -> R.string.theme_light
                     ThemeOption.DARK -> R.string.theme_dark
                 }
-                ListItem(
-                    headlineContent = { Text(stringResource(labelRes)) },
-                    trailingContent = {
-                        RadioButton(
-                            selected = theme == option,
-                            onClick = { settingsViewModel.setTheme(option) }
-                        )
-                    },
-                    modifier = Modifier.clickable { settingsViewModel.setTheme(option) }
-                )
+                Column {
+                    ListItem(
+                        headlineContent = { Text(stringResource(labelRes)) },
+                        trailingContent = {
+                            RadioButton(
+                                selected = theme == option,
+                                onClick = { settingsViewModel.setTheme(option) }
+                            )
+                        },
+                        modifier = Modifier.clickable { settingsViewModel.setTheme(option) }
+                    )
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                }
             }
 
             Text(
@@ -221,55 +236,78 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.recurring)) },
-                supportingContent = { Text(stringResource(R.string.recurring_empty_body)) },
-                leadingContent = {
-                    Icon(imageVector = Icons.Filled.DateRange, contentDescription = null)
-                },
-                modifier = Modifier.clickable { onOpenRecurring() }
-            )
+            Column {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.recurring)) },
+                    supportingContent = { Text(stringResource(R.string.recurring_empty_body)) },
+                    leadingContent = {
+                        Icon(imageVector = Icons.Filled.DateRange, contentDescription = null)
+                    },
+                    modifier = Modifier.clickable { onOpenRecurring() }
+                )
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+            }
 
             Text(
                 text = stringResource(R.string.starting_balance),
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.starting_balance_label)) },
-                supportingContent = {
-                    Text(
-                        if (startingBalance > 0) {
-                            MoneyUtil.format(startingBalance, symbol = LocalCurrencySymbol.current)
-                        } else {
-                            stringResource(R.string.starting_balance_not_set)
-                        }
-                    )
-                },
-                modifier = Modifier.clickable { showStartingBalanceDialog = true }
-            )
+            Column {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.starting_balance_label)) },
+                    supportingContent = {
+                        Text(
+                            text = if (startingBalance > 0) {
+                                MoneyUtil.format(startingBalance, symbol = LocalCurrencySymbol.current)
+                            } else {
+                                stringResource(R.string.starting_balance_not_set)
+                            },
+                            style = if (startingBalance > 0) MoneyMedium else MaterialTheme.typography.bodyMedium
+                        )
+                    },
+                    modifier = Modifier.clickable { showStartingBalanceDialog = true }
+                )
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+            }
 
             Text(
                 text = stringResource(R.string.backup),
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.export_backup)) },
-                leadingContent = {
-                    Icon(imageVector = Icons.Filled.Upload, contentDescription = null)
-                },
-                modifier = Modifier.clickable { exportBackup() }
-            )
-            ListItem(
-                headlineContent = { Text(stringResource(R.string.import_backup)) },
-                leadingContent = {
-                    Icon(imageVector = Icons.Filled.Download, contentDescription = null)
-                },
-                modifier = Modifier.clickable {
-                    importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
-                }
-            )
+            Column {
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.export_backup)) },
+                    leadingContent = {
+                        Icon(imageVector = Icons.Filled.Upload, contentDescription = null)
+                    },
+                    modifier = Modifier.clickable { exportBackup() }
+                )
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+                ListItem(
+                    headlineContent = { Text(stringResource(R.string.import_backup)) },
+                    leadingContent = {
+                        Icon(imageVector = Icons.Filled.Download, contentDescription = null)
+                    },
+                    modifier = Modifier.clickable {
+                        importLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
+                    }
+                )
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+            }
 
             }
             Text(
@@ -342,8 +380,10 @@ private fun StartingBalanceDialog(
                 value = input,
                 onValueChange = { input = MoneyUtil.sanitizeInput(it) },
                 label = { Text(stringResource(R.string.amount_label)) },
+                prefix = { Text(LocalCurrencySymbol.current, style = MoneyInput) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                textStyle = MoneyInput,
                 modifier = Modifier.fillMaxWidth()
             )
         },

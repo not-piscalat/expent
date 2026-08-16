@@ -43,6 +43,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.expent.app.R
 import com.expent.app.core.util.DateUtil
 import com.expent.app.data.local.entity.DebtType
+import com.expent.app.ui.theme.LocalCurrencySymbol
+import com.expent.app.ui.theme.MoneyInput
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -116,9 +118,10 @@ fun AddDebtScreen(
                 value = state.amountInput,
                 onValueChange = viewModel::updateAmount,
                 label = { Text(stringResource(R.string.amount_label)) },
+                prefix = { Text(LocalCurrencySymbol.current, style = MoneyInput) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                textStyle = MaterialTheme.typography.headlineMedium,
+                textStyle = MoneyInput,
                 modifier = Modifier.fillMaxWidth()
             )
 

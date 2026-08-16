@@ -2,7 +2,6 @@ package com.expent.app.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Typography
 import androidx.compose.runtime.Composable
 
 @Composable
@@ -12,7 +11,7 @@ fun ExpentTheme(
 ) {
     MaterialTheme(
         colorScheme = if (darkTheme) DarkColors else LightColors,
-        typography = Typography(),
+        typography = ExpentTypography,
         content = content
     )
 }

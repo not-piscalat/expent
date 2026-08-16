@@ -41,6 +41,8 @@ import com.expent.app.R
 import com.expent.app.core.RecurringFrequency
 import com.expent.app.data.local.entity.TransactionType
 import com.expent.app.ui.components.CategoryIcons
+import com.expent.app.ui.theme.LocalCurrencySymbol
+import com.expent.app.ui.theme.MoneyInput
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.format.TextStyle
@@ -112,9 +114,10 @@ fun AddRecurringScreen(
                 value = state.amountInput,
                 onValueChange = viewModel::updateAmount,
                 label = { Text(stringResource(R.string.amount_label)) },
+                prefix = { Text(LocalCurrencySymbol.current, style = MoneyInput) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                textStyle = MaterialTheme.typography.headlineMedium,
+                textStyle = MoneyInput,
                 modifier = Modifier.fillMaxWidth()
             )
 
