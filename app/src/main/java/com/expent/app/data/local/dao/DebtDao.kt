@@ -28,7 +28,7 @@ interface DebtDao {
     @Delete
     suspend fun delete(debt: DebtEntity)
 
-    @Query("SELECT * FROM debts WHERE id = :id")
+    @Query("SELECT * FROM debts WHERE id = :id AND deletedAt = 0")
     fun observeById(id: Long): Flow<DebtEntity?>
 
     @Query(
@@ -36,6 +36,7 @@ interface DebtDao {
         SELECT d.*, COALESCE(SUM(p.amountCents), 0) AS totalPaidCents
         FROM debts d
         LEFT JOIN debt_payments p ON p.debtId = d.id
+        WHERE d.deletedAt = 0
         GROUP BY d.id
         ORDER BY d.createdAt DESC
         """
@@ -47,7 +48,7 @@ interface DebtDao {
         SELECT d.*, COALESCE(SUM(p.amountCents), 0) AS totalPaidCents
         FROM debts d
         LEFT JOIN debt_payments p ON p.debtId = d.id
-        WHERE d.id = :id
+        WHERE d.id = :id AND d.deletedAt = 0
         GROUP BY d.id
         """
     )

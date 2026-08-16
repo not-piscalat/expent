@@ -33,9 +33,12 @@ import javax.inject.Singleton
  * differs from that last-seen value — so a pull-applied write never echoes back.
  * Local edits bump `updatedAt` in the repository, which is what triggers a push.
  *
- * Deletes travel through [SyncEventBus] because Room flows cannot observe them.
- * Tombstoned (soft) deletes are step 5; for now deletes propagate as hard
- * removals.
+ * Deletes are soft: the repository tombstones a shared row (sets `deletedAt`
+ * and bumps `updatedAt`) instead of removing it, so the push loop carries the
+ * deletion to Firestore like any other write — durable across restarts and
+ * immune to the push/delete race that plagued hard deletes. Remote tombstones
+ * are applied by marking the local row deleted; tombstoned rows are filtered
+ * out of every UI query.
  */
 @Singleton
 class DebtSyncer @Inject constructor(
@@ -43,7 +46,6 @@ class DebtSyncer @Inject constructor(
     private val debtDao: DebtDao,
     private val paymentDao: DebtPaymentDao,
     private val remoteStore: DebtRemoteStore,
-    private val eventBus: SyncEventBus,
     private val scope: CoroutineScope
 ) {
 
@@ -71,7 +73,6 @@ class DebtSyncer @Inject constructor(
         lastSeenRemoteUpdatedAt.clear()
         launch { pushDebts() }
         launch { pushPayments() }
-        launch { eventLoop() }
         pullAll(uid)
     }
 
@@ -119,8 +120,16 @@ class DebtSyncer @Inject constructor(
         // edit is recognized as needing a push.
         lastSeenRemoteUpdatedAt[remote.docId] = remote.updatedAt
         val local = debtDao.getByRemoteId(remote.docId)
-        Log.d(TAG, "applyDebt ${remote.docId}: local=${local?.id} localUpdated=${local?.updatedAt} remoteUpdated=${remote.updatedAt} action=${if (local != null && local.updatedAt > remote.updatedAt) "local-wins" else if (local == null) "insert" else "update"}")
         if (local != null && local.updatedAt > remote.updatedAt) return // local edit wins
+        if (remote.deletedAt != 0L) {
+            // Remote tombstone: mark the local row deleted, or stay hidden if
+            // we never had it. Never insert a row for a deleted debt.
+            if (local != null) {
+                Log.d(TAG, "applyDebt ${remote.docId}: remote tombstone -> local soft delete")
+                debtDao.update(remote.toEntity(local.id))
+            }
+            return
+        }
         val entity = remote.toEntity(local?.id ?: 0L)
         if (local == null) debtDao.insert(entity) else debtDao.update(entity)
     }
@@ -130,6 +139,14 @@ class DebtSyncer @Inject constructor(
         val parentDebtId = debtDao.getByRemoteId(remote.debtDocId)?.id ?: return // parent not pulled yet
         val local = paymentDao.getByRemoteId(remote.docId)
         if (local != null && local.updatedAt > remote.updatedAt) return // local edit wins
+        if (remote.deletedAt != 0L) {
+            // Remote tombstone: mark the local row deleted (never inserted).
+            if (local != null) {
+                Log.d(TAG, "applyPayment ${remote.docId}: remote tombstone -> local soft delete")
+                paymentDao.update(remote.toEntity(local.id, parentDebtId))
+            }
+            return
+        }
         val entity = remote.toEntity(local?.id ?: 0L, parentDebtId)
         if (local == null) paymentDao.insert(entity) else paymentDao.update(entity)
     }
@@ -177,35 +194,6 @@ class DebtSyncer @Inject constructor(
         }
     }
 
-    // ---------------------------------------------------------------- deletes
-
-    private suspend fun eventLoop() {
-        eventBus.events.collect { event ->
-            when (event) {
-                is SyncEvent.DebtDeleted -> {
-                    Log.d(TAG, "DebtDeleted received: ${event.remoteId}")
-                    try {
-                        remoteStore.deleteDebt(event.remoteId)
-                        Log.d(TAG, "DebtDeleted pushed: ${event.remoteId}")
-                    } catch (e: Exception) {
-                        Log.w(TAG, "DebtDeleted failed ${event.remoteId}: ${e.message}")
-                    }
-                    lastSeenRemoteUpdatedAt.remove(event.remoteId)
-                }
-                is SyncEvent.PaymentDeleted -> {
-                    Log.d(TAG, "PaymentDeleted received: ${event.remoteId}")
-                    try {
-                        remoteStore.deletePayment(event.remoteId)
-                        Log.d(TAG, "PaymentDeleted pushed: ${event.remoteId}")
-                    } catch (e: Exception) {
-                        Log.w(TAG, "PaymentDeleted failed ${event.remoteId}: ${e.message}")
-                    }
-                    lastSeenRemoteUpdatedAt.remove(event.remoteId)
-                }
-            }
-        }
-    }
-
     private companion object {
         const val RETRY_DELAY_MS = 10_000L
         const val TAG = "DebtSync"
@@ -238,5 +226,6 @@ private fun RemotePayment.toEntity(localId: Long, localDebtId: Long): DebtPaymen
     note = note,
     remoteId = docId,
     payerId = payerId,
-    updatedAt = updatedAt
+    updatedAt = updatedAt,
+    deletedAt = deletedAt
 )

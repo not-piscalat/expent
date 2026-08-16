@@ -20,8 +20,12 @@ interface DebtPaymentDao {
     @Update
     suspend fun update(payment: DebtPaymentEntity)
 
-    @Query("SELECT * FROM debt_payments WHERE debtId = :debtId ORDER BY timestamp DESC")
+    @Query("SELECT * FROM debt_payments WHERE debtId = :debtId AND deletedAt = 0 ORDER BY timestamp DESC")
     fun observeForDebt(debtId: Long): Flow<List<DebtPaymentEntity>>
+
+    /** All payments of a debt, including tombstoned ones — used when soft-deleting a debt. */
+    @Query("SELECT * FROM debt_payments WHERE debtId = :debtId")
+    suspend fun getByDebtId(debtId: Long): List<DebtPaymentEntity>
 
     @Query("DELETE FROM debt_payments WHERE id = :id")
     suspend fun deleteById(id: Long)

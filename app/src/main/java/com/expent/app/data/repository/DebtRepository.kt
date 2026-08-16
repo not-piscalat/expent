@@ -8,8 +8,6 @@ import com.expent.app.data.local.dao.DebtWithPaid
 import com.expent.app.data.local.entity.DebtEntity
 import com.expent.app.data.local.entity.DebtPaymentEntity
 import com.expent.app.data.local.entity.DebtType
-import com.expent.app.data.sync.SyncEvent
-import com.expent.app.data.sync.SyncEventBus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import java.util.UUID
@@ -18,8 +16,7 @@ import javax.inject.Inject
 class DebtRepository @Inject constructor(
     private val debtDao: DebtDao,
     private val paymentDao: DebtPaymentDao,
-    private val authRepository: AuthRepository,
-    private val eventBus: SyncEventBus
+    private val authRepository: AuthRepository
 ) {
 
     suspend fun addDebt(debt: DebtEntity): Long = debtDao.insert(debt)
@@ -40,17 +37,30 @@ class DebtRepository @Inject constructor(
         debtDao.update(bumped)
     }
 
+    /**
+     * Deletes a debt. Local-only debts are removed outright; shared debts are
+     * tombstoned (`deletedAt` + `updatedAt` bump) so the sync engine pushes the
+     * deletion to the other participant as an ordinary write — durable across
+     * restarts and impossible to race, unlike a hard delete. The debt's
+     * payments are tombstoned with it so no orphan docs linger remotely.
+     */
     suspend fun deleteDebt(debt: DebtEntity) {
-        val remoteId = debt.remoteId
-        debtDao.delete(debt)
-        remoteId?.let { eventBus.emit(SyncEvent.DebtDeleted(it)) }
+        if (debt.remoteId == null) {
+            debtDao.delete(debt)
+            return
+        }
+        val now = System.currentTimeMillis()
+        debtDao.update(debt.copy(deletedAt = now, updatedAt = now))
+        paymentDao.getByDebtId(debt.id).forEach { payment ->
+            if (payment.remoteId != null) {
+                paymentDao.update(payment.copy(deletedAt = now, updatedAt = now))
+            }
+        }
     }
 
     suspend fun deleteDebtById(id: Long) {
-        val remoteId = debtDao.getById(id)?.remoteId
-        android.util.Log.d("DebtSync", "deleteDebtById id=$id remoteId=$remoteId")
-        debtDao.deleteById(id)
-        remoteId?.let { eventBus.emit(SyncEvent.DebtDeleted(it)) }
+        val debt = debtDao.getById(id) ?: return
+        deleteDebt(debt)
     }
 
     /** Debts with the LENT/BORROWED direction flipped to the signed-in user's perspective. */
@@ -83,16 +93,22 @@ class DebtRepository @Inject constructor(
         )
     }
 
+    /**
+     * Deletes a payment. Local-only payments are removed outright; shared ones
+     * are tombstoned so the deletion propagates as a normal sync write.
+     */
     suspend fun deletePayment(payment: DebtPaymentEntity) {
-        val remoteId = payment.remoteId
-        paymentDao.delete(payment)
-        remoteId?.let { eventBus.emit(SyncEvent.PaymentDeleted(it)) }
+        if (payment.remoteId == null) {
+            paymentDao.delete(payment)
+            return
+        }
+        val now = System.currentTimeMillis()
+        paymentDao.update(payment.copy(deletedAt = now, updatedAt = now))
     }
 
     suspend fun deletePaymentById(id: Long) {
-        val remoteId = paymentDao.getById(id)?.remoteId
-        paymentDao.deleteById(id)
-        remoteId?.let { eventBus.emit(SyncEvent.PaymentDeleted(it)) }
+        val payment = paymentDao.getById(id) ?: return
+        deletePayment(payment)
     }
 
     fun observePayments(debtId: Long): Flow<List<DebtPaymentEntity>> =

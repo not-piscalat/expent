@@ -32,5 +32,7 @@ data class DebtPaymentEntity(
     /** The uid of the participant who made the payment (needed to derive the balance from either perspective). */
     val payerId: String? = null,
     /** Server timestamp from Firestore for last-writer-wins conflict resolution. */
-    @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0
+    @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0,
+    /** Tombstone timestamp; 0 means the payment is alive. */
+    @ColumnInfo(defaultValue = "0") val deletedAt: Long = 0
 )

@@ -16,6 +16,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
@@ -41,8 +42,6 @@ class FakeDebtRemoteStore : DebtRemoteStore {
     val payments = MutableStateFlow<List<RemotePayment>>(emptyList())
     val upsertedDebts = mutableListOf<DebtEntity>()
     val upsertedPayments = mutableListOf<UpsertedPayment>()
-    val deletedDebtIds = mutableListOf<String>()
-    val deletedPaymentIds = mutableListOf<String>()
     val joined = mutableListOf<Pair<String, String>>()
     var debtEmissions = 0
 
@@ -73,14 +72,6 @@ class FakeDebtRemoteStore : DebtRemoteStore {
     override suspend fun upsertPayment(payment: DebtPaymentEntity, debtRemoteId: String, participants: List<String>) {
         upsertedPayments += UpsertedPayment(payment, debtRemoteId, participants)
     }
-
-    override suspend fun deleteDebt(remoteId: String) {
-        deletedDebtIds += remoteId
-    }
-
-    override suspend fun deletePayment(remoteId: String) {
-        deletedPaymentIds += remoteId
-    }
 }
 
 @RunWith(RobolectricTestRunner::class)
@@ -92,7 +83,6 @@ class DebtSyncerTest {
     private lateinit var debtDao: DebtDao
     private lateinit var paymentDao: DebtPaymentDao
     private lateinit var fakeStore: FakeDebtRemoteStore
-    private lateinit var eventBus: SyncEventBus
     private lateinit var uidFlow: MutableStateFlow<String?>
     private lateinit var syncer: DebtSyncer
     private lateinit var scope: CoroutineScope
@@ -105,10 +95,9 @@ class DebtSyncerTest {
         debtDao = db.debtDao()
         paymentDao = db.debtPaymentDao()
         fakeStore = FakeDebtRemoteStore()
-        eventBus = SyncEventBus()
         uidFlow = MutableStateFlow(null)
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        syncer = DebtSyncer(uidFlow, debtDao, paymentDao, fakeStore, eventBus, scope)
+        syncer = DebtSyncer(uidFlow, debtDao, paymentDao, fakeStore, scope)
     }
 
     @After
@@ -238,15 +227,62 @@ class DebtSyncerTest {
     }
 
     @Test
-    fun `delete events propagate to the remote store`() = runBlocking {
+    fun `tombstoning a shared debt pushes the tombstone to the remote store`() = runBlocking {
+        debtDao.insert(localDebt(remoteId = "doc-1", updatedAt = 100))
         syncer.start()
         uidFlow.value = "uid-1"
+        await { fakeStore.upsertedDebts.any { it.remoteId == "doc-1" } }
 
-        eventBus.emit(SyncEvent.DebtDeleted("doc-1"))
-        await { fakeStore.deletedDebtIds.contains("doc-1") }
+        val current = debtDao.getByRemoteId("doc-1")!!
+        val now = System.currentTimeMillis()
+        debtDao.update(current.copy(deletedAt = now, updatedAt = now))
+        await { fakeStore.upsertedDebts.any { it.deletedAt != 0L } }
+    }
 
-        eventBus.emit(SyncEvent.PaymentDeleted("pay-1"))
-        await { fakeStore.deletedPaymentIds.contains("pay-1") }
+    @Test
+    fun `a remote tombstone hides the local debt instead of hard-deleting it`() = runBlocking {
+        syncer.start()
+        uidFlow.value = "uid-1"
+        fakeStore.debts.value = listOf(remoteDebt("doc-1", "uid-1", updatedAt = 100))
+        await { debtDao.getByRemoteId("doc-1") != null }
+
+        fakeStore.debts.value = listOf(remoteDebt("doc-1", "uid-1", updatedAt = 200, deletedAt = 150))
+        await { debtDao.getByRemoteId("doc-1")!!.deletedAt != 0L }
+        // Soft delete: the row survives with the tombstone, it is not removed.
+        assertEquals(150L, debtDao.getByRemoteId("doc-1")!!.deletedAt)
+    }
+
+    @Test
+    fun `a remote tombstone for a debt we never had is not inserted`() = runBlocking {
+        syncer.start()
+        uidFlow.value = "uid-1"
+        fakeStore.debts.value = listOf(remoteDebt("doc-1", "uid-1", updatedAt = 200, deletedAt = 150))
+        Thread.sleep(300)
+        assertEquals(null, debtDao.getByRemoteId("doc-1"))
+    }
+
+    @Test
+    fun `a remote payment tombstone hides the local payment`() = runBlocking {
+        syncer.start()
+        uidFlow.value = "uid-1"
+        fakeStore.debts.value = listOf(remoteDebt("doc-1", "uid-1", updatedAt = 100))
+        await { debtDao.getByRemoteId("doc-1") != null }
+        fakeStore.payments.value = listOf(remotePayment("pay-1", "doc-1", updatedAt = 100))
+        await { paymentDao.getByRemoteId("pay-1") != null }
+
+        fakeStore.payments.value = listOf(remotePayment("pay-1", "doc-1", updatedAt = 200, deletedAt = 150))
+        await { paymentDao.getByRemoteId("pay-1")!!.deletedAt != 0L }
+        assertEquals(150L, paymentDao.getByRemoteId("pay-1")!!.deletedAt)
+    }
+
+    @Test
+    fun `tombstoned debts are excluded from UI queries`() = runBlocking {
+        debtDao.insert(localDebt(remoteId = "doc-1", updatedAt = 100))
+        val second = debtDao.insert(localDebt(remoteId = "doc-2", updatedAt = 100))
+        debtDao.update(debtDao.getById(second)!!.copy(deletedAt = 1, updatedAt = 101))
+
+        val visible = debtDao.observeDebtsWithPaid().first()
+        assertEquals(listOf("doc-1"), visible.map { it.debt.remoteId })
     }
 
     @Test
@@ -298,7 +334,8 @@ class DebtSyncerTest {
         updatedAt: Long = 100,
         title: String = "Shared debt",
         amountCents: Long = 1_000,
-        shareCode: String? = null
+        shareCode: String? = null,
+        deletedAt: Long = 0
     ) = RemoteDebt(
         docId = docId,
         participants = listOf("uid-1", "uid-2"),
@@ -312,18 +349,19 @@ class DebtSyncerTest {
         status = DebtStatus.OPEN,
         createdAt = 1,
         updatedAt = updatedAt,
-        deletedAt = 0,
+        deletedAt = deletedAt,
         shareCode = shareCode
     )
 
-    private fun remotePayment(docId: String, debtDocId: String, updatedAt: Long = 100) = RemotePayment(
+    private fun remotePayment(docId: String, debtDocId: String, updatedAt: Long = 100, deletedAt: Long = 0) = RemotePayment(
         docId = docId,
         debtDocId = debtDocId,
         payerId = "uid-2",
         amountCents = 200,
         timestamp = 2,
         note = null,
-        updatedAt = updatedAt
+        updatedAt = updatedAt,
+        deletedAt = deletedAt
     )
 
     private suspend fun await(timeoutMs: Long = 5_000, condition: suspend () -> Boolean) {

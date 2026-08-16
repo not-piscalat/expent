@@ -42,7 +42,9 @@ data class RemotePayment(
     val amountCents: Long,
     val timestamp: Long,
     val note: String?,
-    val updatedAt: Long
+    val updatedAt: Long,
+    /** Tombstone timestamp; 0 means the payment is alive. */
+    val deletedAt: Long = 0
 )
 
 /**
@@ -84,10 +86,6 @@ interface DebtRemoteStore {
      *  security rules can authorize reads without a parent lookup (rules with get()
      *  cannot guard queries). */
     suspend fun upsertPayment(payment: DebtPaymentEntity, debtRemoteId: String, participants: List<String>)
-
-    suspend fun deleteDebt(remoteId: String)
-
-    suspend fun deletePayment(remoteId: String)
 }
 
 @Singleton
@@ -154,14 +152,6 @@ class FirestoreDebtStore @Inject constructor() : DebtRemoteStore {
         ).await()
     }
 
-    override suspend fun deleteDebt(remoteId: String) {
-        db.collection(COLLECTION_DEBTS).document(remoteId).delete().await()
-    }
-
-    override suspend fun deletePayment(remoteId: String) {
-        db.collection(COLLECTION_PAYMENTS).document(remoteId).delete().await()
-    }
-
     private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { cont ->
         addOnSuccessListener { cont.resume(it) }
         addOnFailureListener { cont.resumeWithException(it) }
@@ -207,7 +197,8 @@ private fun com.google.firebase.firestore.DocumentSnapshot.toRemotePayment(): Re
         amountCents = getLong("amountCents") ?: 0,
         timestamp = getLong("timestamp") ?: 0,
         note = getString("note"),
-        updatedAt = (getTimestamp("updatedAt")?.toDate()?.time) ?: (getLong("updatedAt") ?: 0)
+        updatedAt = (getTimestamp("updatedAt")?.toDate()?.time) ?: (getLong("updatedAt") ?: 0),
+        deletedAt = getLong("deletedAt") ?: 0
     )
 }
 
@@ -236,5 +227,6 @@ internal fun DebtPaymentEntity.toRemoteMap(debtRemoteId: String, participants: L
     "amountCents" to amountCents,
     "timestamp" to timestamp,
     "note" to note,
-    "updatedAt" to FieldValue.serverTimestamp()
+    "updatedAt" to FieldValue.serverTimestamp(),
+    "deletedAt" to deletedAt
 )
