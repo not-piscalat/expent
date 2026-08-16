@@ -7,6 +7,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,6 +57,7 @@ import com.expent.app.R
 import com.expent.app.core.CurrencyOption
 import com.expent.app.core.ThemeOption
 import com.expent.app.core.util.MoneyUtil
+import com.expent.app.ui.components.BrandMark
 import com.expent.app.ui.theme.LocalCurrencySymbol
 import com.expent.app.ui.theme.MoneyInput
 import com.expent.app.ui.theme.MoneyMedium
@@ -171,7 +175,7 @@ fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(bottom = 56.dp)
+                    .padding(bottom = 8.dp)
             ) {
             Text(
                 text = stringResource(R.string.currency_label),
@@ -309,16 +313,29 @@ fun SettingsScreen(
                 )
             }
 
-            }
-            Text(
-                text = stringResource(R.string.settings_version, versionName),
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
+            Column(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .padding(vertical = 12.dp)
-                    .clickable {
+                    .padding(vertical = 20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                BrandMark(
+                    modifier = Modifier.size(56.dp),
+                    cornerRadius = 16.dp
+                )
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = stringResource(R.string.settings_version, versionName),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.clickable {
                         versionTaps++
                         if (versionTaps >= 7) {
                             versionTaps = 0
@@ -326,7 +343,9 @@ fun SettingsScreen(
                             throw RuntimeException("Expent test crash — triggered by 7 taps on the version footer")
                         }
                     }
-            )
+                )
+            }
+            }
         }
     }
 

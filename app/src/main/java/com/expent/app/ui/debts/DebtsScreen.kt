@@ -53,6 +53,7 @@ import com.expent.app.core.ShareCode
 import com.expent.app.core.util.MoneyUtil
 import com.expent.app.data.auth.AuthUser
 import com.expent.app.data.auth.GoogleSignIn
+import com.expent.app.ui.components.BrandMark
 import com.expent.app.ui.components.DebtSummaryCard
 import com.expent.app.ui.components.EmptyState
 import com.expent.app.ui.components.ExpentFab
@@ -295,11 +296,8 @@ private fun SignInGate(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = Icons.Filled.AccountCircle,
-            contentDescription = null,
-            modifier = Modifier.size(72.dp),
-            tint = MaterialTheme.colorScheme.primary
+        BrandMark(
+            modifier = Modifier.size(72.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
