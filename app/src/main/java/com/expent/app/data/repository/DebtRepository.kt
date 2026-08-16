@@ -10,6 +10,7 @@ import com.expent.app.data.local.entity.DebtPaymentEntity
 import com.expent.app.data.local.entity.DebtType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import java.util.UUID
 import javax.inject.Inject
 
@@ -19,7 +20,16 @@ class DebtRepository @Inject constructor(
     private val authRepository: AuthRepository
 ) {
 
-    suspend fun addDebt(debt: DebtEntity): Long = debtDao.insert(debt)
+    /**
+     * Creates a debt stamped with the signed-in user as its owner, so a
+     * different account on the same device never sees it. Debts created before
+     * this stamping (creatorId null) rely on the legacy fallback in
+     * [DebtPerspective.visibleTo].
+     */
+    suspend fun addDebt(debt: DebtEntity): Long {
+        val uid = authRepository.authState.first()?.uid
+        return debtDao.insert(if (uid != null) debt.copy(creatorId = uid) else debt)
+    }
 
     /** Share codes already in use locally, so a new code never collides with them. */
     suspend fun getAllShareCodes(): Set<String> = debtDao.getAllShareCodes().toSet()
@@ -63,18 +73,27 @@ class DebtRepository @Inject constructor(
         deleteDebt(debt)
     }
 
-    /** Debts with the LENT/BORROWED direction flipped to the signed-in user's perspective. */
+    /**
+     * Debts the signed-in user may see (participant or creator), with the
+     * LENT/BORROWED direction flipped to their perspective. On a shared device
+     * this is what keeps one account's debts out of another account's list.
+     */
     fun observeAll(): Flow<List<DebtWithPaid>> =
         combine(debtDao.observeDebtsWithPaid(), authRepository.authState) { debts, user ->
-            debts.map { it.withPerspective(user?.uid) }
+            debts.filter { DebtPerspective.visibleTo(it.debt, user?.uid) }
+                .map { it.withPerspective(user?.uid) }
         }
 
     fun observeByIdWithPaid(id: Long): Flow<DebtWithPaid?> =
         combine(debtDao.observeDebtWithPaid(id), authRepository.authState) { debt, user ->
-            debt?.withPerspective(user?.uid)
+            debt?.takeIf { DebtPerspective.visibleTo(it.debt, user?.uid) }
+                ?.withPerspective(user?.uid)
         }
 
-    fun observeById(id: Long): Flow<DebtEntity?> = debtDao.observeById(id)
+    fun observeById(id: Long): Flow<DebtEntity?> =
+        combine(debtDao.observeById(id), authRepository.authState) { debt, user ->
+            debt?.takeIf { DebtPerspective.visibleTo(it, user?.uid) }
+        }
 
     /**
      * Records a payment. On a shared debt the payment is stamped with a remote

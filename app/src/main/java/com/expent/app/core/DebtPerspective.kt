@@ -22,4 +22,18 @@ object DebtPerspective {
             DebtType.BORROWED -> DebtType.LENT
         }
     }
+
+    /**
+     * Whether [myUid] may see this debt on a shared device. A user sees a debt
+     * when they are a participant — the creator or the other side of a shared
+     * record — or when they created an unshared one. Unshared debts created
+     * before ownership was stamped (creatorId null, never shared) stay visible
+     * to anyone on the device rather than vanishing for their original owner.
+     */
+    fun visibleTo(debt: DebtEntity, myUid: String?): Boolean {
+        if (myUid == null) return false
+        return debt.creatorId == myUid ||
+            debt.otherParticipantId == myUid ||
+            (debt.creatorId == null && debt.remoteId == null)
+    }
 }
