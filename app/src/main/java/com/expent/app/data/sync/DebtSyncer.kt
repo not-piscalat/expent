@@ -1,5 +1,6 @@
 package com.expent.app.data.sync
 
+import android.util.Log
 import com.expent.app.data.local.dao.DebtDao
 import com.expent.app.data.local.dao.DebtPaymentDao
 import com.expent.app.data.local.entity.DebtEntity
@@ -11,6 +12,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
@@ -52,7 +54,12 @@ class DebtSyncer @Inject constructor(
     fun start() {
         if (job?.isActive == true) return
         job = scope.launch {
-            userUidFlow.collectLatest { uid ->
+            // distinctUntilChanged: authState re-emits on token refresh etc., and
+            // every emission would cancel and restart the whole sync — wiping
+            // lastSeenRemoteUpdatedAt and re-pushing every shared row, which can
+            // resurrect a just-deleted doc. Only re-sync when the uid changes.
+            userUidFlow.distinctUntilChanged().collectLatest { uid ->
+                Log.d(TAG, "sync uid change: $uid")
                 if (uid == null) return@collectLatest
                 runSync(uid)
             }
@@ -60,6 +67,7 @@ class DebtSyncer @Inject constructor(
     }
 
     private suspend fun runSync(uid: String) = coroutineScope {
+        Log.d(TAG, "runSync started for $uid")
         lastSeenRemoteUpdatedAt.clear()
         launch { pushDebts() }
         launch { pushPayments() }
@@ -86,10 +94,12 @@ class DebtSyncer @Inject constructor(
 
                 // Debts that vanished from the snapshot were deleted remotely.
                 (previousDebtIds - debtIds).forEach { gone ->
+                    Log.d(TAG, "pull: debt vanished from snapshot -> local delete: $gone")
                     debtDao.deleteByRemoteId(gone)
                     lastSeenRemoteUpdatedAt.remove(gone)
                 }
                 previousDebtIds = debtIds
+                Log.d(TAG, "pull snapshot: debts=${remoteDebts.map { it.docId }}")
                 remoteDebts.forEach { applyDebt(it) }
 
                 val paymentIds = remotePayments.map { it.docId }.toSet()
@@ -109,6 +119,7 @@ class DebtSyncer @Inject constructor(
         // edit is recognized as needing a push.
         lastSeenRemoteUpdatedAt[remote.docId] = remote.updatedAt
         val local = debtDao.getByRemoteId(remote.docId)
+        Log.d(TAG, "applyDebt ${remote.docId}: local=${local?.id} localUpdated=${local?.updatedAt} remoteUpdated=${remote.updatedAt} action=${if (local != null && local.updatedAt > remote.updatedAt) "local-wins" else if (local == null) "insert" else "update"}")
         if (local != null && local.updatedAt > remote.updatedAt) return // local edit wins
         val entity = remote.toEntity(local?.id ?: 0L)
         if (local == null) debtDao.insert(entity) else debtDao.update(entity)
@@ -134,6 +145,7 @@ class DebtSyncer @Inject constructor(
                         remoteStore.upsertDebt(debt)
                         lastSeenRemoteUpdatedAt[remoteId] = debt.updatedAt
                     } catch (e: Exception) {
+                        Log.w(TAG, "pushDebt failed $remoteId: ${e.message}")
                         // Transient failure: leave lastSeen untouched so the
                         // next Room emission retries.
                     }
@@ -157,6 +169,7 @@ class DebtSyncer @Inject constructor(
                         )
                         lastSeenRemoteUpdatedAt[remoteId] = payment.updatedAt
                     } catch (e: Exception) {
+                        Log.w(TAG, "pushPayment failed $remoteId: ${e.message}")
                         // Retried on the next Room emission.
                     }
                 }
@@ -170,18 +183,22 @@ class DebtSyncer @Inject constructor(
         eventBus.events.collect { event ->
             when (event) {
                 is SyncEvent.DebtDeleted -> {
+                    Log.d(TAG, "DebtDeleted received: ${event.remoteId}")
                     try {
                         remoteStore.deleteDebt(event.remoteId)
+                        Log.d(TAG, "DebtDeleted pushed: ${event.remoteId}")
                     } catch (e: Exception) {
-                        // Best-effort; the pull side will converge.
+                        Log.w(TAG, "DebtDeleted failed ${event.remoteId}: ${e.message}")
                     }
                     lastSeenRemoteUpdatedAt.remove(event.remoteId)
                 }
                 is SyncEvent.PaymentDeleted -> {
+                    Log.d(TAG, "PaymentDeleted received: ${event.remoteId}")
                     try {
                         remoteStore.deletePayment(event.remoteId)
+                        Log.d(TAG, "PaymentDeleted pushed: ${event.remoteId}")
                     } catch (e: Exception) {
-                        // Best-effort.
+                        Log.w(TAG, "PaymentDeleted failed ${event.remoteId}: ${e.message}")
                     }
                     lastSeenRemoteUpdatedAt.remove(event.remoteId)
                 }
@@ -191,6 +208,7 @@ class DebtSyncer @Inject constructor(
 
     private companion object {
         const val RETRY_DELAY_MS = 10_000L
+        const val TAG = "DebtSync"
     }
 }
 

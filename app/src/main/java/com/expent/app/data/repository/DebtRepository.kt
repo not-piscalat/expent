@@ -48,6 +48,7 @@ class DebtRepository @Inject constructor(
 
     suspend fun deleteDebtById(id: Long) {
         val remoteId = debtDao.getById(id)?.remoteId
+        android.util.Log.d("DebtSync", "deleteDebtById id=$id remoteId=$remoteId")
         debtDao.deleteById(id)
         remoteId?.let { eventBus.emit(SyncEvent.DebtDeleted(it)) }
     }
