@@ -121,6 +121,15 @@ class DebtSyncer @Inject constructor(
         lastSeenRemoteUpdatedAt[remote.docId] = remote.updatedAt
         val local = debtDao.getByRemoteId(remote.docId)
         if (local != null && local.updatedAt > remote.updatedAt) return // local edit wins
+        if (local != null && local.deletedAt != 0L && remote.deletedAt == 0L) {
+            // A local tombstone must never be resurrected by a stale alive
+            // snapshot: the delete is pending push, and the remote state may
+            // predate it (device clocks vs. server timestamps make the LWW
+            // compare unreliable across clock domains). The row stays hidden
+            // until the tombstone push lands.
+            Log.d(TAG, "applyDebt ${remote.docId}: local tombstone beats alive remote")
+            return
+        }
         if (remote.deletedAt != 0L) {
             // Remote tombstone: mark the local row deleted, or stay hidden if
             // we never had it. Never insert a row for a deleted debt.
@@ -139,6 +148,12 @@ class DebtSyncer @Inject constructor(
         val parentDebtId = debtDao.getByRemoteId(remote.debtDocId)?.id ?: return // parent not pulled yet
         val local = paymentDao.getByRemoteId(remote.docId)
         if (local != null && local.updatedAt > remote.updatedAt) return // local edit wins
+        if (local != null && local.deletedAt != 0L && remote.deletedAt == 0L) {
+            // Same rule as debts: a pending local tombstone outranks an alive
+            // remote snapshot.
+            Log.d(TAG, "applyPayment ${remote.docId}: local tombstone beats alive remote")
+            return
+        }
         if (remote.deletedAt != 0L) {
             // Remote tombstone: mark the local row deleted (never inserted).
             if (local != null) {

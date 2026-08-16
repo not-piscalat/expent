@@ -253,6 +253,22 @@ class DebtSyncerTest {
     }
 
     @Test
+    fun `a local tombstone is not resurrected by a stale alive remote snapshot`() = runBlocking {
+        // The user deleted a shared debt; the tombstone push is still pending.
+        debtDao.insert(localDebt(remoteId = "doc-1", updatedAt = 200).copy(deletedAt = 150))
+        syncer.start()
+        uidFlow.value = "uid-1"
+
+        // The remote doc is still alive and looks NEWER (server clock ahead of
+        // the device) — it must not overwrite the pending tombstone.
+        fakeStore.debts.value = listOf(remoteDebt("doc-1", "uid-1", updatedAt = 500, deletedAt = 0))
+        await { fakeStore.debtEmissions >= 1 }
+        Thread.sleep(200) // give a wrong overwrite time to happen
+        val debt = debtDao.getByRemoteId("doc-1")!!
+        assertTrue(debt.deletedAt != 0L)
+    }
+
+    @Test
     fun `a remote tombstone for a debt we never had is not inserted`() = runBlocking {
         syncer.start()
         uidFlow.value = "uid-1"
