@@ -23,7 +23,7 @@ import com.expent.app.data.local.entity.TransactionEntity
         DebtPaymentEntity::class,
         RecurringTemplateEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class ExpentDatabase : RoomDatabase() {
@@ -121,5 +121,17 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL("ALTER TABLE debts ADD COLUMN lastPushedUpdatedAt INTEGER NOT NULL DEFAULT 0")
         db.execSQL("ALTER TABLE debt_payments ADD COLUMN lastPushedUpdatedAt INTEGER NOT NULL DEFAULT 0")
+    }
+}
+
+/**
+ * v7 -> v8: transaction ownership. Rows carry the uid of the account that
+ * created them so account switching on a shared device hides the other
+ * account's spending. Nullable — pre-existing transactions stay visible to
+ * everyone rather than vanishing for their original owner.
+ */
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE transactions ADD COLUMN ownerId TEXT")
     }
 }

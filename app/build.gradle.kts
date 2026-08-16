@@ -86,12 +86,6 @@ android {
             all {
                 it.maxHeapSize = "1g"
                 it.maxParallelForks = 1
-                // Fresh JVM per test class: Robolectric sandboxes accumulate
-                // native state (sqlite, unpacked android-all) across classes,
-                // and a class that runs late in the JVM can hard-abort the
-                // whole worker. Isolating per class makes the suite stable on
-                // Windows at the cost of a few seconds of fork startup.
-                it.forkEvery = 1
             }
         }
     }

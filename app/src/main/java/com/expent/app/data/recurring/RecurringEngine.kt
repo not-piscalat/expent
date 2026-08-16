@@ -1,9 +1,11 @@
 package com.expent.app.data.recurring
 
 import com.expent.app.core.RecurringSchedule
+import com.expent.app.data.auth.AuthRepository
 import com.expent.app.data.local.dao.RecurringTemplateDao
 import com.expent.app.data.local.dao.TransactionDao
 import com.expent.app.data.local.entity.TransactionEntity
+import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
@@ -19,11 +21,15 @@ import javax.inject.Singleton
 @Singleton
 class RecurringEngine @Inject constructor(
     private val templateDao: RecurringTemplateDao,
-    private val transactionDao: TransactionDao
+    private val transactionDao: TransactionDao,
+    private val authRepository: AuthRepository
 ) {
 
     suspend fun applyDue(today: LocalDate = LocalDate.now()) {
         val zone = ZoneId.systemDefault()
+        // Posted transactions belong to whoever is signed in; unowned when
+        // signed out (legacy fallback keeps them visible).
+        val ownerId = authRepository.authState.first()?.uid
         for (template in templateDao.getAll()) {
             if (!template.isActive) continue
             var due = LocalDate.ofEpochDay(template.nextDueEpochDay)
@@ -35,7 +41,8 @@ class RecurringEngine @Inject constructor(
                         type = template.type,
                         categoryId = template.categoryId,
                         note = template.note,
-                        timestamp = due.atStartOfDay(zone).toInstant().toEpochMilli()
+                        timestamp = due.atStartOfDay(zone).toInstant().toEpochMilli(),
+                        ownerId = ownerId
                     )
                 )
                 due = RecurringSchedule.nextDueDate(due, template.frequency, template.dayOfMonth)

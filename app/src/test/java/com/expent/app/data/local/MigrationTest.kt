@@ -91,7 +91,7 @@ class MigrationTest {
     }
 
     @Test
-    fun `migrating from v1 to v7 keeps data and validates the schema`() {
+    fun `migrating from v1 to v8 keeps data and validates the schema`() {
         context.deleteDatabase(dbName)
 
         // Create a real v1 database and seed it like a first-launch install.
@@ -128,7 +128,7 @@ class MigrationTest {
         // Opening at the current version runs the migrations; Room validates the
         // resulting schema and throws if the SQL drifted from its expectations.
         val db = Room.databaseBuilder(context, ExpentDatabase::class.java, dbName)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
             .build()
 
         // A write proves the migrated database is fully writable.
@@ -180,6 +180,9 @@ class MigrationTest {
             // (0) so the next sync pushes each shared row exactly once.
             assertEquals(0L, migratedDebt.lastPushedUpdatedAt)
             assertEquals(0L, migratedPayment.lastPushedUpdatedAt)
+            // v8: transactions carry ownership, unowned by default so existing
+            // rows stay visible to everyone.
+            assertEquals(null, db.transactionDao().getAll().single().ownerId)
 
             // And a shared debt + payment round-trip through the new columns.
             val sharedId = db.debtDao().insert(

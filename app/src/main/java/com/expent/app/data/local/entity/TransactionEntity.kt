@@ -34,5 +34,11 @@ data class TransactionEntity(
     val categoryId: Long?,
     val note: String?,
     val timestamp: Long,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    /**
+     * The uid of the account that owns this transaction, stamped at creation
+     * so a different account on the same device never sees it. Null on rows
+     * created before ownership was tracked (they stay visible to everyone).
+     */
+    val ownerId: String? = null
 )
